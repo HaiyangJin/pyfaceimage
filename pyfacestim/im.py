@@ -57,8 +57,9 @@ def readdir(stimlist, paths=None, stimdirout=True):
     
     stimmat = []
     for i in range(len(paths)):
-        stimmat.append([mpimg.imread(os.path.join(paths[i], img)) for img in stimlist[i]])
-        
+        tmpmat = ([mpimg.imread(os.path.join(paths[i], img)) for img in stimlist[i]])
+        stimmat.append([np.moveaxis(np.tile(im,(3,1,1)),0,2) for im in tmpmat if len(im.shape)==2])
+    
     return stimmat
 
 # write/save the files
@@ -84,6 +85,7 @@ def _imwrite(stimmat, fn):
         os.makedirs(thedir)
     
     # save the image file
+    print(stimmat.shape)
     plt.imsave(fn, stimmat)
     return fn
 
@@ -93,37 +95,86 @@ def mkcf(stimlist, paths=None, outx=500, wlinex=3):
     return cfnames
 
 # make box-scrambled faces
-def mkboxscr(stimlist, paths=None, nxBox=10, nyBox=16):
+def mkboxscr(stimlist, *args, **kwargs):
+    defaultKwargs = {'paths':None, 
+                     'nBoxX':10, 'nBoxY':16, 
+                     'pBoxX':0, 'pBoxY':0, 
+                     'makeup': False, 'mkcolor':0}
+    kwargs = {**defaultKwargs, **kwargs}
     
-    stimmat = readdir(stimlist, paths)
+    stimmat = readdir(stimlist, kwargs['paths'])
     
     bsmats = []
     for ifolder in range(len(stimmat)):
-        bsmats.append([_boxscrambled(orig, nxBox, nyBox) for orig in stimmat[ifolder]])
+        bsmats.append([_boxscrambled(orig, **kwargs) for orig in stimmat[ifolder]])
     
     return bsmats
 
 # make box scrambled faces for each matrix
-def _boxscrambled(stimmat, nxBox, nyBox):
+def _boxscrambled(stimmat, *args, **kwargs):
         
     [y, x] = stimmat.shape[0], stimmat.shape[1]
     
     # x and y pixels for each box
-    boxXPer = int(x/nxBox)
-    boxYPer = int(y/nyBox)
-    assert(boxXPer==x/nxBox)
-    assert(boxYPer==y/nyBox)
+    _pBoxX = x/kwargs['nBoxX']
+    _pBoxY = y/kwargs['nBoxY']
     
+    if not (_pBoxX.is_integer() & _pBoxY.is_integer()):
+        if kwargs['makeup']:
+            # add complementary parts to top and right
+            xnew = np.ceil(_pBoxX) * kwargs['nBoxX']
+            ynew = np.ceil(_pBoxY) * kwargs['nBoxY']
+            
+            stimmat = np.hstack((np.vstack((np.ones((int(ynew-y),stimmat.shape[1],stimmat.shape[2]),dtype=np.uint8)*kwargs['mkcolor'], stimmat)),
+                                 np.ones((int(ynew), int(xnew-x),stimmat.shape[2]),dtype=np.uint8)*kwargs['mkcolor']))
+            
+            _pBoxX = xnew/kwargs['nBoxX']
+            _pBoxY = ynew/kwargs['nBoxY']
+            
+        else:
+            raise Exception('Please input valid nBoxX and nBoxY. Or set "makeup" to True.')
+        
+    if kwargs['pBoxX']==0 | kwargs['pBoxY']==0:
+        kwargs['pBoxX'] = int(np.ceil(_pBoxX))
+        kwargs['pBoxY'] = int(np.ceil(_pBoxY))
+    else:
+        _nBoxX = x/kwargs['pBoxX']
+        _nBoxY = x/kwargs['pBoxY']
+        
+        if not (_nBoxX.is_integer() & _nBoxY.is_integer()):
+            if kwargs['makeup']:
+                # add complementary parts to top and right
+                xnew = np.ceil(_nBoxX) * kwargs['pBoxX']
+                ynew = np.ceil(_nBoxY) * kwargs['pBoxY']
+                
+                stimmat = np.hstack((np.vstack((np.ones(ynew-y,stimmat.shape[1],stimmat.shape[2],dtype=np.uint8)*kwargs['mkcolor'], stimmat)),
+                                    np.ones(stimmat.shape[0], xnew-x, stimmat.shape[2],dtype=np.uint8)*kwargs['mkcolor']))
+                
+                kwargs['nBoxX'] = x/kwargs['pBoxX']
+                kwargs['nBoxY'] = x/kwargs['pBoxY']
+                
+            else:
+                raise Exception('Please input valid pBoxX and pBoxY. Or set "makeup" to True.')
+    
+    [y, x] = stimmat.shape[0], stimmat.shape[1]
+    assert(kwargs['nBoxX']*kwargs['pBoxX']==x)
+    assert(kwargs['nBoxY']*kwargs['pBoxY']==y)
+
     # x and y for all boxes
-    xys = list(product(range(0,x,boxXPer), range(0,y,boxYPer)))
-    boxes = [stimmat[i[1]:(i[1]+boxYPer), i[0]:(i[0]+boxXPer)] for i in xys]
+    xys = list(product(range(0,x,kwargs['pBoxX']), range(0,y,kwargs['pBoxY'])))
+    boxes = [stimmat[i[1]:(i[1]+kwargs['pBoxY']), i[0]:(i[0]+kwargs['pBoxX'])] for i in xys]
     # randomize the boxes
     bsboxes = np.random.permutation(boxes)
     # save as np.array
-    bslist = [bsboxes[i:i+nxBox] for i in range(0,len(bsboxes),nxBox)]
-    bsmat = np.moveaxis(np.asarray(bslist), [-1, 1], [0, -2]).reshape(-1, y, x)
+    bslist = [bsboxes[i:i+kwargs['nBoxX']] for i in range(0,len(bsboxes),kwargs['nBoxX'])]
+    # bsmat = np.moveaxis(np.asarray(bslist), [-1, 1], [0, -2]).reshape(-1, y, x)
+    bsmatm = np.asarray(bslist)
+    if len(bsmatm.shape)==4:
+        bsmatm = bsmatm[..., np.newaxis]
+    print(bsmatm.shape)
+    bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, y, x)
     
-    return np.moveaxis(bsmat,[-2,-1], [0,1])
+    return np.squeeze(np.moveaxis(bsmat,0,2))
 
 
 

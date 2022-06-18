@@ -1,219 +1,192 @@
 """
-Tools used to read or write images.
+The class to process single images.    
 """
-
+    
 import os
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import product
 
 
-# Get the stimulus list
-def stimdir(stimpath, imtype='png', subdir=True):
-    """
-    Get the stimlus list in <stimpath>.
-
-    Args:
-        stimpath (str): path where the stimuli are;
-        imtype (str, optional): image type. Defaults to 'png'.
-        subdir (bool, optional): whether check the subdirectory within <stimpath>. Defaults to True.
-
-    Returns:
-        stimlist (list): list of stimulus list in each folder or sub-folder.
-        paths (list): list of folder names. 
-    """
-    
-    # in the main folder
-    stimlist = [[f for f in os.listdir(stimpath) if f.endswith(imtype)]]
-    folders = ['.']
-    
-    if (subdir):
-        subfolders = [g for g in os.listdir(stimpath) if os.path.isdir(os.path.join(stimpath, g))]
+class stim:
+    def __init__(self, file, dir='.'):
+        # make sure .file exists  os.getcwd()
+        file = os.path.join(dir, file)
+        assert os.path.isfile(file), f'Cannot find {file}...'
+        self.info(file)
+         # default settings
+        self.bsmat = None
+        self.psmat = None
+        self.cmat = None
+        self.bsfile = None
+        self.psfile = None
+        self.cfile = None
+            
+    def info(self, file):
+        self.file = file
+        self.fn = os.path.basename(file)
+        self.fnonly = os.path.splitext(self.fn)[0]
+        self.ext = os.path.splitext(self.fn)[1]
+        self.dir = os.path.dirname(file)
+        self.group = os.path.split(self.dir)[1] # the upper-level folder name
+        self.isfile = os.path.isfile(file)
         
-        sublist=[]
-        for isub in range(len(subfolders)):
-            sublist.append([f for f in os.listdir(os.path.join(stimpath, subfolders[isub])) if f.endswith(imtype)])
+    def imread(self, **kwargs):
+        self.mat = plt.imread(self.file, **kwargs)
+        self.update()
         
-        if len(stimlist[0]) > 0:
-            folders = folders + subfolders
-            stimlist = stimlist + sublist
+    def imsave(self, extrastr='', out='mat',**kwargs):
+        outmats = {'mat': self.mat, 
+                   'bsmat': self.bsmat,
+                   'psmat': self.psmat,
+                   'cmat': self.cmat} # custom
+        outfiles = {'mat': self.file, 
+                   'bsmat': self.bsfile,
+                   'psmat': self.psfile,
+                   'cmat': self.cfile}
+        
+        self.outfile = os.path.splitext(outfiles[out])[0]+extrastr+os.path.splitext(outfiles[out])[1]
+        
+        if self.nlayer==1:
+            theout = outmats[out][:,:,0]
         else:
-            folders = subfolders
-            stimlist = sublist
-    
-    # the full path information
-    paths = [os.path.join(stimpath,f) for f in folders]
+            theout = outmats[out]
+            
+        plt.imsave(self.outfile,theout.copy(order='C'),**kwargs)
         
-    return [stimlist, paths]
-
-# read the files
-def readdir(stimlist, *args, **kwargs):
-    defaultKwargs = {'paths':None, 
-                     'stimdirout':True}
-    kwargs = {**defaultKwargs, **kwargs}
-    
-    if (len(stimlist) == 2) & kwargs['stimdirout']:
-        # assume it is the output of stimdir()
-        paths = stimlist[1]
-        stimlist = stimlist[0]
-    
-    stimmat = []
-    for i in range(len(paths)):
-        tmpmat = ([mpimg.imread(os.path.join(paths[i], img)) for img in stimlist[i]])
-        stimmat.append([np.moveaxis(np.tile(im,(3,1,1)),0,2) for im in tmpmat if len(im.shape)==2])
-    
-    return stimmat
-
-# write/save the files
-def writedir(stimmat, stimlist, outpath=None, extrastr='', imtype=None):
-    
-    # make new directories
-    
-    if outpath is None:
-        outpath = ''
-    paths = stimlist[1]
-    stimlist = stimlist[0]
+    def update(self):
+        if len(self.mat.shape)<3:
+            self.mat = self.mat[..., np.newaxis]
         
-    for i in range(len(stimlist)):
-        fnlist=[os.path.join(outpath, paths[i], stimlist[i][im][:-4]+extrastr+stimlist[i][im][-4:]) for im in range(len(stimmat[i]))]
-        [_imwrite(stimmat[i][im].copy(order='C'), fnlist[im],imtype) for im in range(len(stimmat[i]))]
+        self.dims = self.mat.shape
+        self.ndim = len(self.dims)
+        self.y, self.x, self.nlayer = self.dims
         
-    return fnlist
+    def updatelayer(self, layer=3):
+        if (self.nlayer==1) & (layer==3):
+            # self.mat = np.stack((self.mat,)*3, axis=-1) # when .ndim==2
+            self.mat = np.repeat(self.mat, 3, axis=2)
 
-def _imwrite(stimmat, fn, imtype):
-    
-    thedir = os.path.dirname(fn)
-    if not os.path.isdir(thedir):
-        os.makedirs(thedir)
-    
-    # save the image file
-    if imtype is not None:
-        fn = os.path.splitext(fn)[0]+imtype
-    plt.imsave(fn, stimmat)
-    return fn
+        if (self.nlayer>2) & (layer==1):
+            self.mat = self.mat[:,:,0]
+            
+        self.update()
+                
+    def addalpha(self, amat=None, avalue=1):
+        if amat is None:
+            amat = np.ones_like(self.mat[:,:,0:1],dtype=np.uint8)
+        self.mat = np.concatenate((self.mat, amat*avalue), axis=2)
+        self.update()
+        
+    def pad(self, trgx, trgy, padvalue=0, top=True, left=True):
+        """Add padding to the image/stimuli.
 
-# make composite faces
-def mkcf(stimlist, paths=None, outx=500, wlinex=3):
-    cfnames = None
-    return cfnames
-
-# make box-scrambled faces
-def mkboxscr(stimlist, *args, **kwargs):
-    defaultKwargs = {'paths':None, 
-                     'nBoxX':10, 'nBoxY':16, 
+        Args:
+            trgx (int): the x of the target/desired stimuli. 
+            trgy (int): the y of the target/desired stimuli.
+            padvalue (int, optional): padding value. Defaults to 0.
+            top (bool, optional): padding more to top if needed. Defaults to True.
+            left (bool, optional): padding more to left if needed. Defaults to True.
+        """
+        assert(trgx>=self.x)
+        assert(trgy>=self.y)
+        
+        x1 = int(np.ceil(trgx-self.x)/2)
+        x2 = trgx-self.x-x1
+        y1 = int(np.ceil(trgy-self.y)/2)
+        y2 = trgy-self.y-y1
+        
+        if top:
+            ytop, ybot = y1,y2
+        else:
+            ytop, ybot = y2,y1
+            
+        if left:
+            xleft, xright = x1,x2
+        else:
+            xleft, xright = x2,x1
+            
+        self.mat = np.hstack((
+            np.ones((trgy,xleft,self.nlayer),dtype=np.uint8)*padvalue, 
+            np.vstack((
+                np.ones((ytop,self.x,self.nlayer),dtype=np.uint8)*padvalue, 
+                self.mat,
+                np.ones((ybot,self.x,self.nlayer),dtype=np.uint8)*padvalue
+            )),
+            np.ones((trgy,xright,self.nlayer),dtype=np.uint8)*padvalue, 
+        ))
+        self.update()
+        
+    def mkboxscr(self, *args, **kwargs):
+        """Make box scrambled stimuli.
+        """
+        defaultKwargs = {'nBoxX':10, 'nBoxY':16, 
                      'pBoxX':0, 'pBoxY':0, 
                      'makeup': False, 'mkcolor':0, 'mkalpha': None}
-    kwargs = {**defaultKwargs, **kwargs}
+        kwargs = {**defaultKwargs, **kwargs}
+            
+        # x and y pixels for each box
+        _pBoxX = self.x/kwargs['nBoxX']
+        _pBoxY = self.y/kwargs['nBoxY']
     
-    stimmat = readdir(stimlist, kwargs['paths'])
-    
-    bsmats = []
-    for ifolder in range(len(stimmat)):
-        bsmats.append([_boxscrambled(orig, **kwargs) for orig in stimmat[ifolder]])
-    
-    return bsmats
+        if not ((_pBoxX.is_integer()) & (_pBoxY.is_integer())):
+            if kwargs['makeup']:
+                # add complementary parts (top, right, bottom, left)
+                xnew = int(np.ceil(_pBoxX) * kwargs['nBoxX'])
+                ynew = int(np.ceil(_pBoxY) * kwargs['nBoxY'])
+                self.pad(trgx=xnew, trgy=ynew, padvalue=kwargs['mkcolor'])
+            
+                if kwargs['mkalpha'] is not None:
+                    self.addalpha(amat=None, avalue=kwargs['mkalpha'])
 
-# make box scrambled faces for each matrix
-def _boxscrambled(stimmat, *args, **kwargs):
+                _pBoxX = xnew/kwargs['nBoxX']
+                _pBoxY = ynew/kwargs['nBoxY']
+                
+            else:
+                raise Exception('Please input valid nBoxX and nBoxY. Or set "makeup" to True.')
         
-    [y, x] = stimmat.shape[0], stimmat.shape[1]
-    nlayer=stimmat.shape[2]
-    
-    # x and y pixels for each box
-    _pBoxX = x/kwargs['nBoxX']
-    _pBoxY = y/kwargs['nBoxY']
-    
-    if not (_pBoxX.is_integer() & _pBoxY.is_integer()):
-        if kwargs['makeup']:
-            # add complementary parts (top, right, bottom, left)
-            xnew = int(np.ceil(_pBoxX) * kwargs['nBoxX'])
-            ynew = int(np.ceil(_pBoxY) * kwargs['nBoxY'])
-            
-            xdiffL = int(np.ceil((xnew-x)/2))
-            ydiffT = int(np.ceil((ynew-y)/2)) 
-            xdiffR = xnew-x-xdiffL
-            ydiffB = ynew-y-ydiffT
-            
-            stimmat = np.hstack((
-                np.ones((ynew,xdiffL,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # left
-                np.vstack((
-                    np.ones((ydiffT,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # top
-                    stimmat,
-                    np.ones((ydiffB,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # bottom
-                    )), 
-                np.ones((ynew,xdiffR,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # right
-            ))
-           
-            if kwargs['mkalpha'] is not None:
-               thealpha = np.zeros((ynew, xnew),dtype=np.uint8)
-               thealpha[ydiffT:ydiffT+y,xdiffL:xdiffL+x] = kwargs['mkalpha']
-               stimmat = np.concatenate((stimmat, thealpha[..., np.newaxis]), axis=2)
-
-            _pBoxX = xnew/kwargs['nBoxX']
-            _pBoxY = ynew/kwargs['nBoxY']
-            
-        else:
-            raise Exception('Please input valid nBoxX and nBoxY. Or set "makeup" to True.')
+        if kwargs['pBoxX']==0 | kwargs['pBoxY']==0:
+            kwargs['pBoxX'] = int(np.ceil(_pBoxX))
+            kwargs['pBoxY'] = int(np.ceil(_pBoxY))
         
-    if kwargs['pBoxX']==0 | kwargs['pBoxY']==0:
-        kwargs['pBoxX'] = int(np.ceil(_pBoxX))
-        kwargs['pBoxY'] = int(np.ceil(_pBoxY))
-    else:
-        _nBoxX = x/kwargs['pBoxX']
-        _nBoxY = x/kwargs['pBoxY']
-        
-        if not (_nBoxX.is_integer() & _nBoxY.is_integer()):
+        _nBoxX = self.x/kwargs['pBoxX']
+        _nBoxY = self.y/kwargs['pBoxY']
+            
+        if not ((_nBoxX.is_integer()) & (_nBoxY.is_integer())):
             if kwargs['makeup']:
                 # add complementary parts to top and right
                 xnew = int(np.ceil(_nBoxX) * kwargs['pBoxX'])
                 ynew = int(np.ceil(_nBoxY) * kwargs['pBoxY'])
             
-                xdiffL = int(np.ceil(xnew-x))
-                ydiffT = int(np.ceil(ynew-y)) 
-                xdiffR = xnew-xdiffL
-                ydiffB = ynew-ydiffT
-            
-                stimmat = np.hstack((
-                    np.ones((ynew,xdiffL,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # left
-                    np.vstack((
-                        np.ones((ydiffT,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # top
-                        stimmat,
-                        np.ones((ydiffB,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # bottom
-                        )), 
-                    np.ones((ynew,xdiffR,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # right
-                ))
-            
+                self.pad(trgx=xnew, trgy=ynew, padvalue=kwargs['mkcolor'])
+                            
                 if kwargs['mkalpha']:
-                    thealpha = np.zeros((ynew, xnew),dtype=np.uint8)
-                    thealpha[ydiffT:ydiffT+y,xdiffL+x] = 1
-                    stimmat = np.concatenate((stimmat, thealpha), axis=2)
+                    self.addalpha(amat=None, avalue=kwargs['mkalpha'])
 
-                kwargs['nBoxX'] = x/kwargs['pBoxX']
-                kwargs['nBoxY'] = y/kwargs['pBoxY']
+                kwargs['nBoxX'] = self.x/kwargs['pBoxX']
+                kwargs['nBoxY'] = self.y/kwargs['pBoxY']
                 
             else:
                 raise Exception('Please input valid pBoxX and pBoxY. Or set "makeup" to True.')
-    
-    [y, x] = stimmat.shape[0], stimmat.shape[1]
-    assert(kwargs['nBoxX']*kwargs['pBoxX']==x)
-    assert(kwargs['nBoxY']*kwargs['pBoxY']==y)
+        
+        self.update()
+        assert(kwargs['nBoxX']*kwargs['pBoxX']==self.x)
+        assert(kwargs['nBoxY']*kwargs['pBoxY']==self.y)
 
-    # x and y for all boxes
-    xys = list(product(range(0,x,kwargs['pBoxX']), range(0,y,kwargs['pBoxY'])))
-    boxes = [stimmat[i[1]:(i[1]+kwargs['pBoxY']), i[0]:(i[0]+kwargs['pBoxX'])] for i in xys]
-    # randomize the boxes
-    bsboxes = np.random.permutation(boxes)
-    # save as np.array
-    bslist = [bsboxes[i:i+kwargs['nBoxX']] for i in range(0,len(bsboxes),kwargs['nBoxX'])]
-    # bsmat = np.moveaxis(np.asarray(bslist), [-1, 1], [0, -2]).reshape(-1, y, x)
-    bsmatm = np.asarray(bslist)
-    if len(bsmatm.shape)==4:
-        bsmatm = bsmatm[..., np.newaxis]
-    bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, y, x)
-    
-    return np.squeeze(np.moveaxis(bsmat,0,2))
-
-
-
-
+        # x and y for all boxes
+        xys = list(product(range(0,self.x,kwargs['pBoxX']), range(0,self.y,kwargs['pBoxY'])))
+        boxes = [self.mat[i[1]:(i[1]+kwargs['pBoxY']), i[0]:(i[0]+kwargs['pBoxX'])] for i in xys]
+        # randomize the boxes
+        bsboxes = np.random.permutation(boxes)
+        # save as np.array
+        bslist = [bsboxes[i:i+kwargs['nBoxX']] for i in range(0,len(bsboxes),kwargs['nBoxX'])]
+        # bsmat = np.moveaxis(np.asarray(bslist), [-1, 1], [0, -2]).reshape(-1, y, x)
+        bsmatm = np.asarray(bslist)
+        if len(bsmatm.shape)==4:
+            bsmatm = bsmatm[..., np.newaxis]
+        bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, self.y, self.x)
+        
+        self.bsmat = np.squeeze(np.moveaxis(bsmat,0,2))
+        self.bsfile = os.path.join('.', self.dir, self.fnonly+'bscr'+self.ext)
+        
+    # def mkphasescr(self):

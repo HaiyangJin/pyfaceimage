@@ -25,7 +25,7 @@ def stimdir(stimpath, imtype='png', subdir=True):
     """
     
     # in the main folder
-    stimlist = [f for f in os.listdir(stimpath) if f.endswith(imtype)]
+    stimlist = [[f for f in os.listdir(stimpath) if f.endswith(imtype)]]
     folders = ['.']
     
     if (subdir):
@@ -35,9 +35,9 @@ def stimdir(stimpath, imtype='png', subdir=True):
         for isub in range(len(subfolders)):
             sublist.append([f for f in os.listdir(os.path.join(stimpath, subfolders[isub])) if f.endswith(imtype)])
         
-        if len(stimlist) > 0:
+        if len(stimlist[0]) > 0:
             folders = folders + subfolders
-            stimlist = [stimlist] + sublist
+            stimlist = stimlist + sublist
         else:
             folders = subfolders
             stimlist = sublist
@@ -48,9 +48,12 @@ def stimdir(stimpath, imtype='png', subdir=True):
     return [stimlist, paths]
 
 # read the files
-def readdir(stimlist, paths=None, stimdirout=True):
+def readdir(stimlist, *args, **kwargs):
+    defaultKwargs = {'paths':None, 
+                     'stimdirout':True}
+    kwargs = {**defaultKwargs, **kwargs}
     
-    if (len(stimlist) == 2) & stimdirout:
+    if (len(stimlist) == 2) & kwargs['stimdirout']:
         # assume it is the output of stimdir()
         paths = stimlist[1]
         stimlist = stimlist[0]
@@ -63,7 +66,7 @@ def readdir(stimlist, paths=None, stimdirout=True):
     return stimmat
 
 # write/save the files
-def writedir(stimmat, stimlist, outpath=None, extrastr=''):
+def writedir(stimmat, stimlist, outpath=None, extrastr='', imtype=None):
     
     # make new directories
     
@@ -74,18 +77,19 @@ def writedir(stimmat, stimlist, outpath=None, extrastr=''):
         
     for i in range(len(stimlist)):
         fnlist=[os.path.join(outpath, paths[i], stimlist[i][im][:-4]+extrastr+stimlist[i][im][-4:]) for im in range(len(stimmat[i]))]
-        [_imwrite(stimmat[i][im].copy(order='C'), fnlist[im]) for im in range(len(stimmat[i]))]
+        [_imwrite(stimmat[i][im].copy(order='C'), fnlist[im],imtype) for im in range(len(stimmat[i]))]
         
     return fnlist
 
-def _imwrite(stimmat, fn):
+def _imwrite(stimmat, fn, imtype):
     
     thedir = os.path.dirname(fn)
     if not os.path.isdir(thedir):
         os.makedirs(thedir)
     
     # save the image file
-    print(stimmat.shape)
+    if imtype is not None:
+        fn = os.path.splitext(fn)[0]+imtype
     plt.imsave(fn, stimmat)
     return fn
 
@@ -99,7 +103,7 @@ def mkboxscr(stimlist, *args, **kwargs):
     defaultKwargs = {'paths':None, 
                      'nBoxX':10, 'nBoxY':16, 
                      'pBoxX':0, 'pBoxY':0, 
-                     'makeup': False, 'mkcolor':0}
+                     'makeup': False, 'mkcolor':0, 'mkalpha': None}
     kwargs = {**defaultKwargs, **kwargs}
     
     stimmat = readdir(stimlist, kwargs['paths'])
@@ -114,6 +118,7 @@ def mkboxscr(stimlist, *args, **kwargs):
 def _boxscrambled(stimmat, *args, **kwargs):
         
     [y, x] = stimmat.shape[0], stimmat.shape[1]
+    nlayer=stimmat.shape[2]
     
     # x and y pixels for each box
     _pBoxX = x/kwargs['nBoxX']
@@ -121,13 +126,30 @@ def _boxscrambled(stimmat, *args, **kwargs):
     
     if not (_pBoxX.is_integer() & _pBoxY.is_integer()):
         if kwargs['makeup']:
-            # add complementary parts to top and right
-            xnew = np.ceil(_pBoxX) * kwargs['nBoxX']
-            ynew = np.ceil(_pBoxY) * kwargs['nBoxY']
+            # add complementary parts (top, right, bottom, left)
+            xnew = int(np.ceil(_pBoxX) * kwargs['nBoxX'])
+            ynew = int(np.ceil(_pBoxY) * kwargs['nBoxY'])
             
-            stimmat = np.hstack((np.vstack((np.ones((int(ynew-y),stimmat.shape[1],stimmat.shape[2]),dtype=np.uint8)*kwargs['mkcolor'], stimmat)),
-                                 np.ones((int(ynew), int(xnew-x),stimmat.shape[2]),dtype=np.uint8)*kwargs['mkcolor']))
+            xdiffL = int(np.ceil((xnew-x)/2))
+            ydiffT = int(np.ceil((ynew-y)/2)) 
+            xdiffR = xnew-x-xdiffL
+            ydiffB = ynew-y-ydiffT
             
+            stimmat = np.hstack((
+                np.ones((ynew,xdiffL,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # left
+                np.vstack((
+                    np.ones((ydiffT,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # top
+                    stimmat,
+                    np.ones((ydiffB,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # bottom
+                    )), 
+                np.ones((ynew,xdiffR,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # right
+            ))
+           
+            if kwargs['mkalpha'] is not None:
+               thealpha = np.zeros((ynew, xnew),dtype=np.uint8)
+               thealpha[ydiffT:ydiffT+y,xdiffL:xdiffL+x] = kwargs['mkalpha']
+               stimmat = np.concatenate((stimmat, thealpha[..., np.newaxis]), axis=2)
+
             _pBoxX = xnew/kwargs['nBoxX']
             _pBoxY = ynew/kwargs['nBoxY']
             
@@ -144,14 +166,31 @@ def _boxscrambled(stimmat, *args, **kwargs):
         if not (_nBoxX.is_integer() & _nBoxY.is_integer()):
             if kwargs['makeup']:
                 # add complementary parts to top and right
-                xnew = np.ceil(_nBoxX) * kwargs['pBoxX']
-                ynew = np.ceil(_nBoxY) * kwargs['pBoxY']
-                
-                stimmat = np.hstack((np.vstack((np.ones(ynew-y,stimmat.shape[1],stimmat.shape[2],dtype=np.uint8)*kwargs['mkcolor'], stimmat)),
-                                    np.ones(stimmat.shape[0], xnew-x, stimmat.shape[2],dtype=np.uint8)*kwargs['mkcolor']))
-                
+                xnew = int(np.ceil(_nBoxX) * kwargs['pBoxX'])
+                ynew = int(np.ceil(_nBoxY) * kwargs['pBoxY'])
+            
+                xdiffL = int(np.ceil(xnew-x))
+                ydiffT = int(np.ceil(ynew-y)) 
+                xdiffR = xnew-xdiffL
+                ydiffB = ynew-ydiffT
+            
+                stimmat = np.hstack((
+                    np.ones((ynew,xdiffL,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # left
+                    np.vstack((
+                        np.ones((ydiffT,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'], # top
+                        stimmat,
+                        np.ones((ydiffB,x,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # bottom
+                        )), 
+                    np.ones((ynew,xdiffR,nlayer),dtype=np.uint8)*kwargs['mkcolor'] # right
+                ))
+            
+                if kwargs['mkalpha']:
+                    thealpha = np.zeros((ynew, xnew),dtype=np.uint8)
+                    thealpha[ydiffT:ydiffT+y,xdiffL+x] = 1
+                    stimmat = np.concatenate((stimmat, thealpha), axis=2)
+
                 kwargs['nBoxX'] = x/kwargs['pBoxX']
-                kwargs['nBoxY'] = x/kwargs['pBoxY']
+                kwargs['nBoxY'] = y/kwargs['pBoxY']
                 
             else:
                 raise Exception('Please input valid pBoxX and pBoxY. Or set "makeup" to True.')
@@ -171,7 +210,6 @@ def _boxscrambled(stimmat, *args, **kwargs):
     bsmatm = np.asarray(bslist)
     if len(bsmatm.shape)==4:
         bsmatm = bsmatm[..., np.newaxis]
-    print(bsmatm.shape)
     bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, y, x)
     
     return np.squeeze(np.moveaxis(bsmat,0,2))

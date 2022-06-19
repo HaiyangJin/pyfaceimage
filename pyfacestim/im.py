@@ -6,7 +6,6 @@ import os
 from PIL import Image, ImageOps
 import numpy as np
 import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
 from itertools import product
 import psychopy.filters
 
@@ -329,7 +328,26 @@ class stim:
         mat = np.clip(mat, a_min=-1.0, a_max=1.0)
         return mat
     
-    # def mkphasescr(self):
-    # def mkphasescr(self):
     
-    
+    def mkphasescr(self, **kwargs):
+        defaultKwargs = {'rms':0.3}
+        kwargs = {**defaultKwargs, **kwargs}
+        
+        # make a random phase
+        randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
+        
+        tmpmat = np.empty(self.rgbmat.shape)
+        tmpmat[:] = np.NaN
+        
+        for i in range(3):
+            img_freq = np.fft.fft2(self._stdim(self.rgbmat[:,:,i], kwargs['rms']))
+            amp = np.abs(img_freq)
+            phase = np.angle(img_freq) + randphase
+            outimg = np.real(np.fft.ifft2(amp * np.exp(np.sqrt(-1+0j)*phase)))
+            stdimg1= self._stdim(outimg, kwargs['rms'])
+            tmpmat[:,:,i] = (stdimg1+1)/2*255
+        
+        self.psmat = np.uint8(tmpmat)
+        self.psfile = os.path.join('.', self.dir, self.fnonly+'pscr'+self.ext)
+        self.pspil = Image.fromarray(self.psmat)
+        

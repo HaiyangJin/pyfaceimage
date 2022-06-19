@@ -72,3 +72,9 @@ face.imshow('c', face.flmat)
 
 face.sffilter(sffilter='high')
 face.imshow('c', face.flmat)
+
+
+### phase-scrambled
+face.mkphasescr()
+face.imshow('ps')
+face.imshow('c', face.psmat)

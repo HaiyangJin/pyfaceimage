@@ -8,6 +8,6 @@ setup(
     url='https://github.com/HaiyangJin/pyfacestim',
     keywords='',
     packages=['pyfacestim'],
-    install_requires=['matplotlib', 'PIL', 'numpy'],
+    install_requires=['matplotlib', 'PIL', 'numpy', 'psychopy'],
     # python_requires='>=3.8',
 )

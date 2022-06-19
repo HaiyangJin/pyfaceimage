@@ -3,6 +3,8 @@ import os
 import pyfacestim as fim
 import numpy as np
 
+###############
+
 # create instances
 stim1 = fim.stim('test/teststim/test_stim/l1.png')
 stim1_ = fim.stim('l1.png', 'test/teststim/test_stim')
@@ -61,4 +63,12 @@ stim1_.resize(width=600)
 stim1_.imshow('re')
 stim1_.imshow('re')
 
+##### spatial frequency
+face = fim.stim('test/me.jpeg')
+face.read()
 
+face.sffilter()
+face.imshow('c', face.flmat)
+
+face.sffilter(sffilter='high')
+face.imshow('c', face.flmat)

@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from itertools import product
-
+import psychopy.filters
 
 class stim:
     def __init__(self, file, dir='.'):
@@ -47,11 +47,15 @@ class stim:
         self.update2pil()
         self.grayscale()        
         
-    def imshow(self, which='mat'):
+    def imshow(self, which='mat', cmat=None):
         # for debugging purpose (check the mat)
         # it seems that .show() is more useful
-        outs = self._whichmat()
-        Image.fromarray(outs[which]['mat']).show()
+        if which=='c':
+            themat = cmat
+        else:
+            outs = self._whichmat()
+            themat = outs[which]['mat']
+        Image.fromarray(themat).show()
         
     def show(self, which='mat'):
         # for debugging purpose (check the PIL)
@@ -86,8 +90,7 @@ class stim:
                 'gs': {'mat':self.gsmat, 'file':self.gsfile, 'pil':self.gspil}, # gray scale
                 're': {'mat':self.remat, 'file':self.refile, 'pil':self.repil}, # resize
                 'bs': {'mat':self.bsmat, 'file':self.bsfile, 'pil':self.bspil}, # box-scrambled
-                'ps': {'mat':self.psmat, 'file':self.psfile, 'pil':self.pspil}, # phase-scrambled
-                'custom': {'mat':self.cmat, 'file':self.cfile, 'pil':self.cpil}} # custom
+                'ps': {'mat':self.psmat, 'file':self.psfile, 'pil':self.pspil}} # phase-scrambled
         return outs
     
     def update2pil(self):
@@ -178,7 +181,6 @@ class stim:
             htop, hbot = y1,y2
         else:
             htop, hbot = y2,y1
-            
         if left:
             wleft, wright = x1,x2
         else:
@@ -269,8 +271,65 @@ class stim:
         self.bsfile = os.path.join('.', self.dir, self.fnonly+'bscr'+self.ext)
         self.bspil = Image.fromarray(self.bsmat)
     
-    # def sffilter(self):
+    def sffilter(self, **kwargs):
+        # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
+        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'sffilter':'low',
+                         'cutoff': 0.05, 'n': 10}
+        kwargs = {**defaultKwargs, **kwargs}
+        
+        stdmat = self._stdim(self.gsmat, kwargs['rms'])
+        img_freq = np.fft.fft2(stdmat)
+
+        # calculate amplitude spectrum
+        # img_amp = np.fft.fftshift(np.abs(img_freq))
+
+        # # for display, take the logarithm
+        # img_amp_disp = np.log(img_amp + 0.0001)
+
+        # # rescale to -1:+1 for display
+        # img_amp_disp = (
+        #     ((img_amp_disp - np.min(img_amp_disp)) * 2) / 
+        #     np.ptp(img_amp_disp)  # 'ptp' = range
+        # ) - 1
+        
+        if kwargs['sffilter']=='low':
+            # for generating blury images
+            fsfilt = psychopy.filters.butter2d_lp(
+                size=(self.w, self.h),
+                cutoff=kwargs['cutoff'],
+                n=kwargs['n']
+            )
+        elif kwargs['sffilter']=='high':      
+             # for gernerating sharp images
+            fsfilt = psychopy.filters.butter2d_hp(
+                size=(self.w, self.h),
+                cutoff=kwargs['cutoff'],
+                n=kwargs['n']
+            )
+        else:
+            raise 'Cannot identify the "sffilter" value...'
+        
+        img_filt = np.fft.fftshift(img_freq) * fsfilt.transpose()
+        # convert back to an image
+        img_new = np.real(np.fft.ifft2(np.fft.ifftshift(img_filt)))
+        # standardize the image to [-1, 1]
+        img_new = self._stdim(img_new, kwargs['rms'])
+        # convert the range to [0, 255]
+        img_new = (img_new+1)/2*kwargs['maxvalue']
+        self.flmat = img_new
     
+    
+    def _stdim(self, mat, rms=0.3):
+        # standardize the image (the range of output should be -1,1)
+        # make the standard deviation to be the desired RMS
+        mat = (mat - np.mean(mat))/np.std(mat) * rms
+        
+        # there may be some stray values outside of the presentable range; convert < -1
+        # to -1 and > 1 to 1
+        mat = np.clip(mat, a_min=-1.0, a_max=1.0)
+        return mat
+    
+    # def mkphasescr(self):
     # def mkphasescr(self):
     
     

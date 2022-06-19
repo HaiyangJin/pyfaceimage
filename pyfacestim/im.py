@@ -3,7 +3,7 @@ The class to process single images.
 """
     
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -45,6 +45,7 @@ class stim:
         # .filename .format, .mode, .split()
         self.mat = np.asarray(self.pil)
         self.update2pil()
+        self.grayscale()        
         
     def imshow(self, which='mat'):
         # for debugging purpose (check the mat)
@@ -82,6 +83,7 @@ class stim:
         
     def _whichmat(self):
         outs = {'mat': {'mat':self.mat, 'file':self.file, 'pil':self.pil},
+                'gs': {'mat':self.gsmat, 'file':self.gsfile, 'pil':self.gspil}, # gray scale
                 're': {'mat':self.remat, 'file':self.refile, 'pil':self.repil}, # resize
                 'bs': {'mat':self.bsmat, 'file':self.bsfile, 'pil':self.bspil}, # box-scrambled
                 'ps': {'mat':self.psmat, 'file':self.psfile, 'pil':self.pspil}, # phase-scrambled
@@ -107,13 +109,13 @@ class stim:
         nlayer = self.mat.shape[2]
         if nlayer==1: # Gray 'L'
             rgbmat = np.repeat(self.mat, 3, axis=2) # RGB
-            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.mat.max() # alpha
+            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
         elif nlayer==2: # Gray 'LA'
             rgbmat = np.repeat(self.mat[:,:,0:1], 3, axis=2) # RGB
             amat = self.mat[:,:,-1] # alpha
         elif nlayer==3: # RGB
             rgbmat = self.mat # RGB
-            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.mat.max() # alpha
+            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
         elif nlayer==4: # RGBA
             rgbmat = self.mat[:,:,0:3]
             amat = self.mat[:,:,-1]
@@ -122,6 +124,11 @@ class stim:
         self.amat = amat
         self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
         
+    def grayscale(self):
+        self.gspil = ImageOps.grayscale(self.pil)
+        self.gsmat = np.asarray(self.gspil)
+        self.gsfile = os.path.join('.', self.dir, self.fnonly+'gray'+self.ext)
+    
     def resize(self, **kwargs):
         # resize the image
         defaultKwargs = {'width': None, 'height': None, 'ratio':0}
@@ -144,6 +151,7 @@ class stim:
         kwargs['size'] = (w,h)
         [kwargs.pop(k) for k in defaultKwargs.keys()] # remove unused keys
         
+        # save re-sized images (information)
         self.repil = self.pil.resize(**kwargs)
         self.refile = os.path.join(str(w)+'_'+str(h), self.file)
         self.remat = np.asarray(self.repil)
@@ -256,6 +264,7 @@ class stim:
             bsmatm = bsmatm[..., np.newaxis]
         bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, self.h, self.w)
         
+        # save box-scrambled images (and information)
         self.bsmat = np.squeeze(np.moveaxis(bsmat,0,2))
         self.bsfile = os.path.join('.', self.dir, self.fnonly+'bscr'+self.ext)
         self.bspil = Image.fromarray(self.bsmat)

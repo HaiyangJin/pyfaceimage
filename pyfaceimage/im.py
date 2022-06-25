@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
-import psychopy.filters
+
 
 class stim:
     def __init__(self, file, dir='.'):
@@ -272,6 +272,8 @@ class stim:
     
     def sffilter(self, **kwargs):
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
+        import psychopy.filters
+        
         defaultKwargs = {'rms':0.3, 'maxvalue':255, 'sffilter':'low',
                          'cutoff': 0.05, 'n': 10}
         kwargs = {**defaultKwargs, **kwargs}

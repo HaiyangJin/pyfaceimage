@@ -9,7 +9,7 @@ import matplotlib.image as mpimg
 from itertools import product
 
 
-class stim:
+class image:
     def __init__(self, file, dir='.'):
         # make sure .file exists  os.getcwd()
         file = os.path.join(dir, file)

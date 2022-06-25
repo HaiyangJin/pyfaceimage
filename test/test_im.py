@@ -6,65 +6,65 @@ import numpy as np
 ###############
 
 # create instances
-stim1 = fim.stim('test/teststim/test_stim/l1.png')
-stim1_ = fim.stim('l1.png', 'test/teststim/test_stim')
+im1 = fim.image('test/teststim/test_stim/l1.png')
+im1_ = fim.image('l1.png', 'test/teststim/test_stim')
 
 # read images
-stim1.read()
-stim1_.read()
-assert np.array_equal(stim1.mat, stim1_.mat)
+im1.read()
+im1_.read()
+assert np.array_equal(im1.mat, im1_.mat)
 
 #######################
 
 # save another file
-stim1.imsave('_tmp1')
-stim1_.save('mat', '_tmp2')
-os.remove(stim1.outfile)
-os.remove(stim1_.outfile)
+im1.imsave('_tmp1')
+im1_.save('mat', '_tmp2')
+os.remove(im1.outfile)
+os.remove(im1_.outfile)
 
-stim1.imshow()
-stim1_.show()
+im1.imshow()
+im1_.show()
 
 # tests
-stim1.file
-stim1.fn
-stim1.fnonly
-stim1.ext
-stim1.dir
-stim1.group
-stim1.isfile
+im1.file
+im1.fn
+im1.fnonly
+im1.ext
+im1.dir
+im1.group
+im1.isfile
 
-assert(stim1.mat.shape[2]==4)
-assert(stim1.rgbmat.shape[2]==3)
-assert(len(stim1.amat.shape)==2)
+assert(im1.mat.shape[2]==4)
+assert(im1.rgbmat.shape[2]==3)
+assert(len(im1.amat.shape)==2)
 
-stim1.dims
+im1.dims
 
 # pad
-stim1.pad(500, 500)
-stim1.imshow()
-stim1.show()
+im1.pad(500, 500)
+im1.imshow()
+im1.show()
 
 # box-scrambled
-stim1_.mkboxscr(nBoxX=20, nBoxY=20, makeup=1)
-stim1_.imsave('_bs1', 'bs')
-os.remove(stim1_.outfile)
-stim1_.imshow('bs')
-stim1_.show('bs')
+im1_.mkboxscr(nBoxX=20, nBoxY=20, makeup=1)
+im1_.imsave('_bs1', 'bs')
+os.remove(im1_.outfile)
+im1_.imshow('bs')
+im1_.show('bs')
 
-stim1.mkboxscr(nBoxX=20, nBoxY=20)
-stim1.imsave('_bs1', 'bs')
-os.remove(stim1.outfile)
-stim1.imshow('bs')
-stim1.show('bs')
+im1.mkboxscr(nBoxX=20, nBoxY=20)
+im1.imsave('_bs1', 'bs')
+os.remove(im1.outfile)
+im1.imshow('bs')
+im1.show('bs')
 
 # resize
-stim1_.resize(width=600)
-stim1_.imshow('re')
-stim1_.imshow('re')
+im1_.resize(width=600)
+im1_.imshow('re')
+im1_.imshow('re')
 
 ##### spatial frequency
-face = fim.stim('test/me.jpeg')
+face = fim.image('test/me.jpeg')
 face.read()
 
 face.sffilter()

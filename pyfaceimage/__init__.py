@@ -2,12 +2,12 @@
 Tools used during surface-based analysis with FreeSurfer.
 """
 
-from .im import (stim)
+from .im import (image)
         
 # # from .fast import (funcdir,
 # #                     sesslist)
 
 # # from .uti import (tmp)
 
-__all__ = ['stim', 
+__all__ = ['image', 
            ]

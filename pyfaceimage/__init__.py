@@ -4,10 +4,11 @@ Tools used during surface-based analysis with FreeSurfer.
 
 from .im import (image)
         
-# # from .fast import (funcdir,
-# #                     sesslist)
+from .dict import (dir, read, save, 
+                   checksample, mkboxscr)
 
 # # from .uti import (tmp)
 
 __all__ = ['image', 
-           ]
+           'dir', 'read', 'save',
+           'checksample', 'mkboxscr']

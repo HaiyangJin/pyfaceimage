@@ -10,7 +10,7 @@ from itertools import product
 
 
 class image:
-    def __init__(self, file, dir='.'):
+    def __init__(self, file, dir='.', read=False):
         # make sure .file exists  os.getcwd()
         file = os.path.join(dir, file)
         assert os.path.isfile(file), f'Cannot find {file}...'
@@ -29,6 +29,9 @@ class image:
         self.cmat = None
         self.cfile = None
         self.cpil = None
+        
+        if read:
+            self.read()
             
     def _info(self):
         self.fn = os.path.basename(self.file)
@@ -267,7 +270,7 @@ class image:
         
         # save box-scrambled images (and information)
         self.bsmat = np.squeeze(np.moveaxis(bsmat,0,2))
-        self.bsfile = os.path.join('.', self.dir, self.fnonly+'bscr'+self.ext)
+        self.bsfile = os.path.join('.', self.dir, self.fnonly+'_bscr'+self.ext)
         self.bspil = Image.fromarray(self.bsmat)
     
     def sffilter(self, **kwargs):

@@ -1,4 +1,4 @@
-name: pyfacestim
+name: pyfaceimage
 channels:
   - defaults
 dependencies:

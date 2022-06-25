@@ -1,13 +1,13 @@
 from setuptools import setup
 setup(
-    name='pyfacestim',
+    name='pyfaceimage',
     version='0.1',
     author='Haiyang Jin',
     description='Some functions to play with face stimuli in Python.',
     long_description='Some functions to play with face stimuli in Python.',
     url='https://github.com/HaiyangJin/pyfacestim',
     keywords='',
-    packages=['pyfacestim'],
+    packages=['pyfaceimage'],
     install_requires=['matplotlib', 'PIL', 'numpy', 'psychopy'],
     # python_requires='>=3.8',
 )

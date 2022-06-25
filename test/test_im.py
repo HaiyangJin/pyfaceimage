@@ -1,6 +1,6 @@
 
 import os
-import pyfacestim as fim
+import pyfaceimage as fim
 import numpy as np
 
 ###############

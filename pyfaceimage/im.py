@@ -7,7 +7,8 @@ from PIL import Image, ImageOps
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
-
+import warnings
+import copy
 
 class image:
     def __init__(self, file, dir='.', read=False):
@@ -15,33 +16,78 @@ class image:
         file = os.path.join(dir, file)
         assert os.path.isfile(file), f'Cannot find {file}...'
         self.file = file
-        self._info()
-        # default settings for different type of images
-        # box scrambled
-        self.bsmat = None
-        self.bsfile = None
-        self.bspil = None
-        # gray-scaled
-        self.gsmat = None
-        self.gsfile = None
-        self.gspil = None
-        # re-sized
-        self.remat = None
-        self.refile = None
-        self.repil = None
-        # phase-scrambled
-        self.psmat = None
-        self.psfile = None
-        self.pspil = None
-        # custom (maybe not useful)
-        self.cmat = None
-        self.cfile = None
-        self.cpil = None
-        
+        self._updatefromfile() # update filename information
         if read:
             self.read()
+        
+    def read(self):
+        self._repil(Image.open(self.file)) # PIL.Image.open() 
+        # potential useful functions
+        # .filename .format, .mode, .split()
+        
+    def imshow(self):
+        # for debugging purpose (check the mat)
+        # it seems that .show() is more useful
+        Image.fromarray(self.mat).show()
+        
+    def show(self):
+        # for debugging purpose (check the PIL)
+        self.pil.show()
+
+    def imsave(self, extrafn='', extrafolder='.', **kwargs):
+        # use matplotlib.pyplot.imsave() to save .mat
+        self.outfile = self._updatefile(extrafn, extrafolder)
+        
+        # make dir(s)
+        if not os.path.isdir(os.path.dirname(self.outfile)):
+            os.makedirs(os.path.dirname(self.outfile))
             
-    def _info(self):
+        if self.nlayer==1:
+            outmat = self.mat[:,:,0]
+        else:
+            outmat = self.mat
+            
+        mpimg.imsave(self.outfile,outmat.copy(order='C'),**kwargs)
+        
+    def save(self, extrafn='', extrafolder='.', **kwargs):
+        # use PIL.Image.save() to save .pil        
+        self.outfile = self._updatefile(extrafn, extrafolder)
+        
+        # make dir(s)
+        if not os.path.isdir(os.path.dirname(self.outfile)):
+            os.makedirs(os.path.dirname(self.outfile))
+        
+        self.pil.save(self.outfile, format=None, **kwargs)
+        
+    def _updatefile(self, extrafn='', extrafolder='.'):
+        # update file with extra fn or extra (sub)folder
+        file = os.path.splitext(self.file)[0]+extrafn+os.path.splitext(self.file)[1]
+        file = os.path.join(os.path.dirname(file), extrafolder, os.path.basename(file))
+        return file
+        
+    def deepcopy(self):
+        # make a deep copy of the instance
+        return copy.deepcopy(self)
+    
+    def refile(self, newfilename):
+        # rename the file and update the related information
+        self.file = newfilename
+        self._updatefromfile()
+        if self.isfile:
+            warnings.warn(f"The file named '{self.file}' already exists...")
+            
+    def remat(self, mat):
+        # re-assign value to .mat and update related information
+        self.mat = mat
+        self.pil = Image.fromarray(mat)
+        self._updatefrommat()
+        
+    def _repil(self, pil):
+        self.pil = pil
+        self.mat = np.asarray(self.pil)
+        self._updatefrommat()
+    
+    def _updatefromfile(self):
         self.fn = os.path.basename(self.file)
         self.fnonly = os.path.splitext(self.fn)[0]
         self.ext = os.path.splitext(self.fn)[1]
@@ -49,69 +95,14 @@ class image:
         self.group = os.path.split(self.dir)[1] # the upper-level folder name
         self.isfile = os.path.isfile(self.file)
         
-    def read(self):
-        self.pil = Image.open(self.file) # PIL.Image.open() 
-        # potential useful functions
-        # .filename .format, .mode, .split()
-        self.mat = np.asarray(self.pil)
-        self.update2pil()
-        self.grayscale()        
-        
-    def imshow(self, which='mat', cmat=None):
-        # for debugging purpose (check the mat)
-        # it seems that .show() is more useful
-        if which=='c':
-            themat = cmat
-        else:
-            outs = self._whichmat()
-            themat = outs[which]['mat']
-        Image.fromarray(themat).show()
-        
-    def show(self, which='mat'):
-        # for debugging purpose (check the PIL)
-        outs = self._whichmat()
-        outs[which]['pil'].show()
-
-    def imsave(self, extrastr='', which='mat', **kwargs):
-        # use matplotlib.pyplot.imsave() to save .mat
-        outs = self._whichmat()
-        self.outfile = os.path.splitext(outs[which]['file'])[0]+extrastr+os.path.splitext(outs[which]['file'])[1]
-        
-        if self.nlayer==1:
-            outmat = outs[which]['mat'][:,:,0]
-        else:
-            outmat = outs[which]['mat']
-            
-        mpimg.imsave(self.outfile,outmat.copy(order='C'),**kwargs)
-        
-    def save(self, which='mat', extrastr='', **kwargs):
-        # use PIL.Image.save() to save .pil
-        outs = self._whichmat()
-        im = outs[which]
-        if not os.path.isdir(os.path.dirname(im['file'])):
-            os.makedirs(os.path.dirname(im['file']))
-        
-        self.outfile = os.path.splitext(im['file'])[0]+extrastr+os.path.splitext(im['file'])[1]
-        
-        im['pil'].save(self.outfile, format=None, **kwargs)
-        
-    def _whichmat(self):
-        outs = {'mat': {'mat':self.mat, 'file':self.file, 'pil':self.pil},
-                'gs': {'mat':self.gsmat, 'file':self.gsfile, 'pil':self.gspil}, # gray scale
-                're': {'mat':self.remat, 'file':self.refile, 'pil':self.repil}, # resize
-                'bs': {'mat':self.bsmat, 'file':self.bsfile, 'pil':self.bspil}, # box-scrambled
-                'ps': {'mat':self.psmat, 'file':self.psfile, 'pil':self.pspil}} # phase-scrambled
-        return outs
-    
-    def update2pil(self):
-        self.mat = np.asarray(self.pil)
-        self.update()
-        
-    def update(self):
+    def _updatefrommat(self):
         self.dims = self.mat.shape
         self.ndim = len(self.dims)
-        self.h, self.w, self.nlayer = self.dims
-        self.torgba()
+        if self.ndim==2:
+            self.h, self.w = self.dims
+            self.nlayer = 0
+        elif self.ndim==3:
+            self.h, self.w, self.nlayer = self.dims
         
     def torgba(self):
         # convert pil to RGBA and save in .mat
@@ -136,11 +127,12 @@ class image:
         self.rgbmat = rgbmat
         self.amat = amat
         self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
+        self._updatefrommat()
         
     def grayscale(self):
-        self.gspil = ImageOps.grayscale(self.pil)
-        self.gsmat = np.asarray(self.gspil)
-        self.gsfile = os.path.join('.', self.dir, self.fnonly+'gray'+self.ext)
+        # convert image to gray-scale
+        self._repil(ImageOps.grayscale(self.pil))
+        self.refile(self._updatefile(extrafn='_gray'))
     
     def resize(self, **kwargs):
         # resize the image
@@ -165,20 +157,24 @@ class image:
         [kwargs.pop(k) for k in defaultKwargs.keys()] # remove unused keys
         
         # save re-sized images (information)
-        self.repil = self.pil.resize(**kwargs)
-        self.refile = os.path.join(str(w)+'_'+str(h), self.file)
-        self.remat = np.asarray(self.repil)
+        self._repil(self.pil.resize(**kwargs))
+        self.refile(self._updatefile(extrafolder=str(w)+'_'+str(h)))
         
-    def pad(self, trgw, trgh, padvalue=0, top=True, left=True):
+    def pad(self, trgw, trgh, **kwargs):
         """Add padding to the image/stimuli.
 
         Args:
             trgw (int): the width of the target/desired stimuli. 
             trgh (int): the height of the target/desired stimuli.
-            padvalue (int, optional): padding value. Defaults to 0.
+            padvalue (int, optional): padding value. Defaults to 0 (show as transparent if alpha layer exists).
             top (bool, optional): padding more to top if needed. Defaults to True.
             left (bool, optional): padding more to left if needed. Defaults to True.
+            padalpha (int, optional): the transparent color. Defaults to -1, i.e., not to force it to transparent.
         """
+        
+        defaultKwargs = {'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1}
+        kwargs = {**defaultKwargs, **kwargs}
+        
         assert(trgw>=self.w)
         assert(trgh>=self.h)
         
@@ -187,90 +183,96 @@ class image:
         y1 = int(np.ceil(trgh-self.h)/2)
         y2 = trgh-self.h-y1
         
-        if top:
+        if kwargs['top']:
             htop, hbot = y1,y2
         else:
             htop, hbot = y2,y1
-        if left:
+        if kwargs['left']:
             wleft, wright = x1,x2
         else:
             wleft, wright = x2,x1
             
-        self.mat = np.hstack((
-            np.ones((trgh,wleft,self.nlayer),dtype=np.uint8)*padvalue, 
+        if self.nlayer==0:
+            nlayer = 1
+            mat = self.mat[..., np.newaxis] # add one more axis
+        else:
+            nlayer = self.nlayer
+            mat = self.mat
+            
+        if (kwargs['padalpha']>=0) & (nlayer==1 | nlayer==3):
+            mat = np.concatenate((mat, np.ones((self.h, self.w, 1), dtype=np.uint8)*kwargs['padalpha']),axis=2)
+            nlayer = nlayer + 1
+        
+        padmat = np.hstack((
+            np.ones((trgh,wleft,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
             np.vstack((
-                np.ones((htop,self.w,self.nlayer),dtype=np.uint8)*padvalue, 
-                self.mat,
-                np.ones((hbot,self.w,self.nlayer),dtype=np.uint8)*padvalue
+                np.ones((htop,self.w,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
+                mat,
+                np.ones((hbot,self.w,nlayer),dtype=np.uint8)*kwargs['padvalue']
             )),
-            np.ones((trgh,wright,self.nlayer),dtype=np.uint8)*padvalue, 
+            np.ones((trgh,wright,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
         ))
-        self.update()
+        
+        if (self.nlayer==0) & (kwargs['padalpha']<0):
+            padmat = padmat[:,:,0]
+        
+        self.remat(padmat)
+        self.refile(self._updatefile(extrafn='_pad'))
         
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
         """
-        defaultKwargs = {'nBoxX':10, 'nBoxY':16, 
-                     'pBoxX':0, 'pBoxY':0, 
-                     'customdir': 'boxscr',
-                     'makeup': False, 'mkcolor':0, 'mkalpha': None}
+        defaultKwargs = {'nBoxW':10, 'nBoxH':16, 
+                     'pBoxW':0, 'pBoxH':0, 
+                     'pad': False, 'padcolor':0, 'padalpha': -1}
         kwargs = {**defaultKwargs, **kwargs}
             
-        # x and y pixels for each box
-        _pBoxX = self.w/kwargs['nBoxX']
-        _pBoxY = self.h/kwargs['nBoxY']
-    
-        if not ((_pBoxX.is_integer()) & (_pBoxY.is_integer())):
-            if kwargs['makeup']:
-                # add complementary parts (top, right, bottom, left)
-                xnew = int(np.ceil(_pBoxX) * kwargs['nBoxX'])
-                ynew = int(np.ceil(_pBoxY) * kwargs['nBoxY'])
-                self.pad(trgw=xnew, trgh=ynew, padvalue=kwargs['mkcolor'])
+        if (kwargs['pBoxW']!=0) & (kwargs['pBoxH']!=0):
+        
+            _nBoxW = self.w/kwargs['pBoxW']
+            _nBoxH = self.h/kwargs['pBoxH']
             
-                if kwargs['mkalpha'] is not None:
-                    self.addalpha(amat=None, avalue=kwargs['mkalpha'])
-
-                _pBoxX = xnew/kwargs['nBoxX']
-                _pBoxY = ynew/kwargs['nBoxY']
+            if not ((_nBoxW.is_integer()) & (_nBoxH.is_integer())):
+                assert kwargs['pad'], 'Please input valid pBoxW and pBoxH. Or set "pad" to True.'
                 
-            else:
-                raise Exception('Please input valid nBoxX and nBoxY. Or set "makeup" to True.')
-        
-        if kwargs['pBoxX']==0 | kwargs['pBoxY']==0:
-            kwargs['pBoxX'] = int(np.ceil(_pBoxX))
-            kwargs['pBoxY'] = int(np.ceil(_pBoxY))
-        
-        _nBoxX = self.w/kwargs['pBoxX']
-        _nBoxY = self.h/kwargs['pBoxY']
-            
-        if not ((_nBoxX.is_integer()) & (_nBoxY.is_integer())):
-            if kwargs['makeup']:
                 # add complementary parts to top and right
-                xnew = int(np.ceil(_nBoxX) * kwargs['pBoxX'])
-                ynew = int(np.ceil(_nBoxY) * kwargs['pBoxY'])
+                xnew = int(np.ceil(_nBoxW) * kwargs['pBoxW'])
+                ynew = int(np.ceil(_nBoxH) * kwargs['pBoxH'])
             
-                self.pad(trgw=xnew, trgh=ynew, padvalue=kwargs['mkcolor'])
-                            
-                if kwargs['mkalpha']:
-                    self.addalpha(amat=None, avalue=kwargs['mkalpha'])
+                self.pad(trgw=xnew, trgh=ynew, padvalue=kwargs['padcolor'], padalpha=kwargs['padalpha'])
 
-                kwargs['nBoxX'] = self.w/kwargs['pBoxX']
-                kwargs['nBoxY'] = self.h/kwargs['pBoxY']
+            kwargs['nBoxW'] = int(self.w/kwargs['pBoxW'])
+            kwargs['nBoxH'] = int(self.h/kwargs['pBoxH'])
                 
-            else:
-                raise Exception('Please input valid pBoxX and pBoxY. Or set "makeup" to True.')
-        
-        self.update()
-        assert(kwargs['nBoxX']*kwargs['pBoxX']==self.w)
-        assert(kwargs['nBoxY']*kwargs['pBoxY']==self.h)
+        elif (kwargs['nBoxW']!=0) & (kwargs['nBoxH']!=0):
+            
+            # x and y pixels for each box
+            _pBoxW = self.w/kwargs['nBoxW']
+            _pBoxH = self.h/kwargs['nBoxH']
+    
+            if not ((_pBoxW.is_integer()) & (_pBoxH.is_integer())):
+                assert kwargs['pad'], 'Please input valid nBoxW and nBoxH. Or set "pad" to True.'
+                
+                # add padding (top, right, bottom, left)
+                newW = int(np.ceil(_pBoxW) * kwargs['nBoxW'])
+                newY = int(np.ceil(_pBoxH) * kwargs['nBoxH'])
+                self.pad(trgw=newW, trgh=newY, padvalue=kwargs['padcolor'], padalpha=kwargs['padalpha'])
 
+            kwargs['pBoxW'] = int(self.w/kwargs['nBoxW'])
+            kwargs['pBoxH'] = int(self.h/kwargs['nBoxH'])
+        else:
+            raise 'Please set valid nBoxW and nBoxH (or pBoxW and pBoxH).'
+        
+        assert kwargs['nBoxW']*kwargs['pBoxW']==self.w, f"'nBoxW': {kwargs['nBoxW']}   'pBoxW': {kwargs['pBoxW']}    'self.w': {self.w}"
+        assert kwargs['nBoxH']*kwargs['pBoxH']==self.h, f"'nBoxH': {kwargs['nBoxH']}   'pBoxH': {kwargs['pBoxH']}    'self.h': {self.h}"
+        
         # x and y for all boxes
-        xys = list(product(range(0,self.w,kwargs['pBoxX']), range(0,self.h,kwargs['pBoxY'])))
-        boxes = [self.mat[i[1]:(i[1]+kwargs['pBoxY']), i[0]:(i[0]+kwargs['pBoxX'])] for i in xys]
+        xys = list(product(range(0,self.w,kwargs['pBoxW']), range(0,self.h,kwargs['pBoxH'])))
+        boxes = [self.mat[i[1]:(i[1]+kwargs['pBoxH']), i[0]:(i[0]+kwargs['pBoxW'])] for i in xys]
         # randomize the boxes
         bsboxes = np.random.permutation(boxes)
         # save as np.array
-        bslist = [bsboxes[i:i+kwargs['nBoxX']] for i in range(0,len(bsboxes),kwargs['nBoxX'])]
+        bslist = [bsboxes[i:i+kwargs['nBoxW']] for i in range(0,len(bsboxes),kwargs['nBoxW'])]
         # bsmat = np.moveaxis(np.asarray(bslist), [-1, 1], [0, -2]).reshape(-1, y, x)
         bsmatm = np.asarray(bslist)
         if len(bsmatm.shape)==4:
@@ -278,9 +280,8 @@ class image:
         bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, self.h, self.w)
         
         # save box-scrambled images (and information)
-        self.bsmat = np.squeeze(np.moveaxis(bsmat,0,2))
-        self.bsfile = os.path.join('.', self.dir, kwargs['customdir'], self.fnonly+'_bscr'+self.ext)
-        self.bspil = Image.fromarray(self.bsmat)
+        self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
+        self.refile(self._updatefile(extrafn='_bscr'))
     
     def sffilter(self, **kwargs):
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
@@ -290,7 +291,8 @@ class image:
                          'cutoff': 0.05, 'n': 10}
         kwargs = {**defaultKwargs, **kwargs}
         
-        stdmat = self._stdim(self.gsmat, kwargs['rms'])
+        self.grayscale()
+        stdmat = self._stdim(self.mat, kwargs['rms'])
         img_freq = np.fft.fft2(stdmat)
 
         # calculate amplitude spectrum
@@ -329,8 +331,8 @@ class image:
         img_new = self._stdim(img_new, kwargs['rms'])
         # convert the range to [0, 255]
         img_new = (img_new+1)/2*kwargs['maxvalue']
-        self.flmat = img_new
-    
+        self.remat(img_new)
+        self.refile(self._updatefile(extrafn='_'+kwargs['sffilter']+'_filtered'))
     
     def _stdim(self, mat, rms=0.3):
         # standardize the image (the range of output should be -1,1)
@@ -341,27 +343,35 @@ class image:
         # to -1 and > 1 to 1
         mat = np.clip(mat, a_min=-1.0, a_max=1.0)
         return mat
-    
-    
+
     def mkphasescr(self, **kwargs):
         defaultKwargs = {'rms':0.3}
         kwargs = {**defaultKwargs, **kwargs}
         
         # make a random phase
         randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
+
+        if self.nlayer==0:
+            nlayer = 1
+            mat = self.mat[..., np.newaxis] # add one more axis
+        else:
+            nlayer = self.nlayer
+            mat = self.mat
+            
+        outmat = np.empty(mat.shape)
+        outmat[:] = np.NaN
         
-        tmpmat = np.empty(self.rgbmat.shape)
-        tmpmat[:] = np.NaN
-        
-        for i in range(3):
-            img_freq = np.fft.fft2(self._stdim(self.rgbmat[:,:,i], kwargs['rms']))
+        for i in range(nlayer):
+            img_freq = np.fft.fft2(self._stdim(mat[:,:,i], kwargs['rms']))
             amp = np.abs(img_freq)
             phase = np.angle(img_freq) + randphase
             outimg = np.real(np.fft.ifft2(amp * np.exp(np.sqrt(-1+0j)*phase)))
             stdimg1= self._stdim(outimg, kwargs['rms'])
-            tmpmat[:,:,i] = (stdimg1+1)/2*255
+            outmat[:,:,i] = (stdimg1+1)/2*255
+            
+        if self.nlayer==0:
+            outmat = outmat[:,:,0]
         
-        self.psmat = np.uint8(tmpmat)
-        self.psfile = os.path.join('.', self.dir, self.fnonly+'pscr'+self.ext)
-        self.pspil = Image.fromarray(self.psmat)
+        self.remat(np.uint8(outmat))
+        self.refile(self._updatefile(extrafn='_pscr'))
         

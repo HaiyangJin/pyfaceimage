@@ -16,16 +16,24 @@ class image:
         assert os.path.isfile(file), f'Cannot find {file}...'
         self.file = file
         self._info()
-         # default settings (for scrambled images)
+        # default settings for different type of images
+        # box scrambled
         self.bsmat = None
         self.bsfile = None
         self.bspil = None
+        # gray-scaled
+        self.gsmat = None
+        self.gsfile = None
+        self.gspil = None
+        # re-sized
         self.remat = None
         self.refile = None
         self.repil = None
+        # phase-scrambled
         self.psmat = None
         self.psfile = None
         self.pspil = None
+        # custom (maybe not useful)
         self.cmat = None
         self.cfile = None
         self.cpil = None
@@ -204,6 +212,7 @@ class image:
         """
         defaultKwargs = {'nBoxX':10, 'nBoxY':16, 
                      'pBoxX':0, 'pBoxY':0, 
+                     'customdir': 'boxscr',
                      'makeup': False, 'mkcolor':0, 'mkalpha': None}
         kwargs = {**defaultKwargs, **kwargs}
             
@@ -270,7 +279,7 @@ class image:
         
         # save box-scrambled images (and information)
         self.bsmat = np.squeeze(np.moveaxis(bsmat,0,2))
-        self.bsfile = os.path.join('.', self.dir, self.fnonly+'_bscr'+self.ext)
+        self.bsfile = os.path.join('.', self.dir, kwargs['customdir'], self.fnonly+'_bscr'+self.ext)
         self.bspil = Image.fromarray(self.bsmat)
     
     def sffilter(self, **kwargs):

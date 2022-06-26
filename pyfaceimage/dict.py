@@ -42,3 +42,8 @@ def mkboxscr(stimdict, **kwargs):
     
 def save(stimdict, which='mat', extrastr='', **kwargs):
     [v.save(which, extrastr, **kwargs) for v in stimdict.values()]
+    
+    
+def resize(stimdict, **kwargs):
+    
+    [v.resize(**kwargs) for v in stimdict.values()]

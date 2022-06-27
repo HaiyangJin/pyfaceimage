@@ -4,11 +4,17 @@ Tools used during surface-based analysis with FreeSurfer.
 
 from .im import (image)
         
-from .dict import (dir, read, save, deepcopy,
-                   checksample, mkboxscr, resize)
+from .dict import (dir, deepcopy,
+                   checksample, 
+                   read, save, grayscale, cropoval,
+                   croprect, resize, pad, mkboxscr, 
+                   sffilter, mkphasescr)
 
 # # from .uti import (tmp)
 
 __all__ = ['image', 
-           'dir', 'read', 'save', 'deepcopy',
-           'checksample', 'mkboxscr', 'resize']
+           'dir', 'deepcopy',
+           'checksample', 
+           'read', 'save', 'grayscale', 'cropoval',
+           'croprect', 'resize', 'pad', 'mkboxscr', 
+           'sffilter', 'mkphasescr',

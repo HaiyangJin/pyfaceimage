@@ -194,7 +194,7 @@ class image:
         self._repil(self.pil.resize(**kwargs))
         self.refile(self._updatefile(extrafolder=str(w)+'_'+str(h)))
         
-    def pad(self, trgw, trgh, **kwargs):
+    def pad(self, **kwargs):
         """Add padding to the image/stimuli.
 
         Args:
@@ -206,8 +206,10 @@ class image:
             padalpha (int, optional): the transparent color. Defaults to -1, i.e., not to force it to transparent.
         """
         
-        defaultKwargs = {'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1}
+        defaultKwargs = {'trgw':self.w, 'trgh':self.h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1}
         kwargs = {**defaultKwargs, **kwargs}
+        
+        trgw,trgh = kwargs['trgw'], kwargs['trgh']
         
         assert(trgw>=self.w)
         assert(trgh>=self.h)

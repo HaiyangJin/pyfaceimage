@@ -3,7 +3,7 @@ The class to process single images.
 """
     
 import os
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
@@ -11,9 +11,10 @@ import warnings
 import copy
 
 class image:
-    def __init__(self, file, dir='.', read=False):
+    def __init__(self, file, dir=os.getcwd(), read=False):
         # make sure .file exists  os.getcwd()
-        file = os.path.join(dir, file)
+        if not file.startswith(os.sep):
+            file = os.path.join(dir, file)
         assert os.path.isfile(file), f'Cannot find {file}...'
         self.file = file
         self._updatefromfile() # update filename information
@@ -133,6 +134,39 @@ class image:
         # convert image to gray-scale
         self._repil(ImageOps.grayscale(self.pil))
         self.refile(self._updatefile(extrafn='_gray'))
+        
+    def cropoval(self, radius=(100,128), bgcolor=None):
+        
+        # for instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent
+        
+        # for circle
+        if type(radius) is not tuple:
+            radius = (radius, radius) # a and b in ellipse formula
+        bbox = (self.w/2-radius[0], self.h/2-radius[1], self.w/2+radius[0], self.h/2+radius[1])
+        
+        # make a ellipse/oval mask
+        pil_a = Image.new("L", self.pil.size, 0)
+        draw = ImageDraw.Draw(pil_a)
+        draw.ellipse(bbox, fill=255)
+        
+        if bgcolor is not None:
+            if type(bgcolor) is not tuple:
+                bgcolor = ((bgcolor),)*len(self.pil.mode)
+            pil_2 = Image.new(self.pil.mode, self.pil.size, bgcolor)
+            draw = ImageDraw.Draw(pil_2)
+            draw.ellipse(bbox, fill=255)
+            self.pil = Image.composite(self.pil, pil_2, pil_a)
+        else:
+            # only apply cropping to the alpha layer
+            self.pil.putalpha(pil_a)
+        # update to pil        
+        self._repil(self.pil)
+        # crop the rectangle
+        self.croprect(bbox)
+        
+    def croprect(self, box=None):
+        # crop the image with a rectangle box
+        self._repil(self.pil.crop(box))
     
     def resize(self, **kwargs):
         # resize the image

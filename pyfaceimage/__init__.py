@@ -10,7 +10,7 @@ from .dict import (dir, deepcopy,
                    croprect, resize, pad, mkboxscr, 
                    sffilter, mkphasescr)
 
-# # from .uti import (tmp)
+from .multiim import (mkcf)
 
 __all__ = ['image', 
            'dir', 'deepcopy',
@@ -18,3 +18,4 @@ __all__ = ['image',
            'read', 'save', 'grayscale', 'cropoval',
            'croprect', 'resize', 'pad', 'mkboxscr', 
            'sffilter', 'mkphasescr',
+           'mkcf']

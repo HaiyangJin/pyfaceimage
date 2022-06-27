@@ -1,7 +1,7 @@
 from setuptools import setup
 setup(
     name='pyfaceimage',
-    version='0.1',
+    version='0.0.1-alpha',
     author='Haiyang Jin',
     description='Some functions to play with face stimuli in Python.',
     long_description='Some functions to play with face stimuli in Python.',

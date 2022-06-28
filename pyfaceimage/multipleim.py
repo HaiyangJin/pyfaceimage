@@ -12,7 +12,7 @@ def mkcf(im1, im2, **kwargs):
     Args:
         im1 (fim.image instance): image one (ready by fim.image) for creating composite faces.
         im2 (fim.image instance): image two (ready by fim.image) for creating composite faces.
-        misali (int): misalignment pixels. Positive int will shift to the right and negative int will shift to the left. Defaults to 0.
+        misali (int, num): misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to 0.
         topis1 (bool): whether im1 (or im2) is used as the top of the composite face. Defaults to True. 
         cueistop (bool): whether the top half is cued. Defaults to True.
         lineh (int): the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.
@@ -34,14 +34,19 @@ def mkcf(im1, im2, **kwargs):
     kwargs = {**defaultKwargs, **kwargs}
     
     w_cf = kwargs['width_cf']
+    if isinstance(kwargs['misali'], int):
+        misali = kwargs['misali']
+    else:
+        misali = int(kwargs['misali']*im1.w)
+    assert (misali+im1.w/2)<=w_cf/2, f'Please make sure the width of the composite face ({w_cf}) is set appropriately to fit the misalignment ({misali}).'
         
     alistrs = ['ali', 'mis']
     bboxes = [(0, 0, im1.w, im1.h/2), (0, im1.h/2, im1.w, im1.h)] # top, bottom
-    dests = [((w_cf-im1.w)//2+kwargs['misali']*(1-kwargs['cueistop']), 0), # top position
-             ((w_cf-im1.w)//2+kwargs['misali']*kwargs['cueistop'], im1.h//2+kwargs['lineh'])] # bottom position
+    dests = [((w_cf-im1.w)//2+misali*(1-kwargs['cueistop']), 0), # top position
+             ((w_cf-im1.w)//2+misali*kwargs['cueistop'], im1.h//2+kwargs['lineh'])] # bottom position
     fns_12 = [im1.fnonly, im2.fnonly]
     
-    fn_cf = os.path.join(im1.dir, fns_12[1-kwargs['topis1']]+'_'+fns_12[kwargs['topis1']]+'_'+alistrs[kwargs['misali']!=0])
+    fn_cf = os.path.join(im1.dir, fns_12[1-kwargs['topis1']]+'_'+fns_12[kwargs['topis1']]+'_'+alistrs[misali!=0])
     
     # top and bottom pil
     im1_half = im1.deepcopy()

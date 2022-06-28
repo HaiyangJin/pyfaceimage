@@ -1,8 +1,9 @@
 import os
 import random
 import copy
+from itertools import permutations
 
-from pyfaceimage import im
+from pyfaceimage import im, multipleim
 
 
 def dir(path='.', imgtype='.png', read=True):
@@ -29,6 +30,28 @@ def checksample(imdict, n=1, return_value=True):
         out = samples
     
     return out
+
+def mkcfs(imdict,  **kwargs):
+    
+    defaultKwargs = {'misali':[0,0.5]}
+    kwargs = {**defaultKwargs, **kwargs}
+    misali = kwargs['misali']
+    if not(isinstance(misali, list) | isinstance(misali, tuple)):
+        misali=[misali]
+    
+    nim = len(imdict)
+    assert nim>1, f'There should be more than one im in imdict... (Now {nim})'
+    
+    cfdict = {}
+    for (k1, k2) in permutations(sorted(imdict), 2):
+         
+        for mis in misali: # both aligned and misaligned
+            kwargs['misali']=mis
+            tmpcf = multipleim.mkcf(imdict[k1], imdict[k2], **kwargs)
+            cfdict[tmpcf.fnonly]=tmpcf
+    
+    return cfdict
+    
 
 
 def read(imdict):

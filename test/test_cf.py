@@ -37,3 +37,18 @@ cf_mis_top_c.save(extrafolder='tmp')
 cf_mis_bot_c = fim.mkcf(im1, im2, cueistop=False, misali=100, showcue=True)
 cf_mis_bot_c.show()
 cf_mis_bot_c.save(extrafolder='tmp')
+
+# test misaligned
+cf_mis1 = fim.mkcf(im1, im2, misali=100)
+cf_mis1.show()
+
+cf_mis2 = fim.mkcf(im1, im2, misali=0.5)
+cf_mis2.show()
+
+cf_mis2 = fim.mkcf(im1, im2, misali=2.5)
+
+# test make cf with imdict
+imdict = fim.dir('test/multi')
+cfdict = fim.dictim.mkcfs(imdict)
+fim.checksample(cfdict).show()
+fim.save(cfdict,extrafolder='tmp')

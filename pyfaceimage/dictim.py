@@ -9,14 +9,14 @@ from pyfaceimage import im, multipleim
 def dir(path='.', imgtype='.png', read=True):
     
     imdict = {os.path.splitext(f)[0]:im.image(f, path, read) for f in os.listdir(path) if f.endswith(imgtype)}
-    print(f'Find {len(imdict)} files...')
+    print(f'Found {len(imdict)} files...')
     
     return imdict
 
 def deepcopy(imdict):
     return copy.deepcopy(imdict)
 
-def checksample(imdict, n=1, return_value=True):
+def sample(imdict, n=1, return_value=True):
     
     # random select one image from dictionary to check the output
     assert n<=len(imdict)

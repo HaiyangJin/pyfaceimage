@@ -170,16 +170,16 @@ class image:
     
     def resize(self, **kwargs):
         # resize the image
-        defaultKwargs = {'width': None, 'height': None, 'ratio':0}
+        defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0}
         kwargs = {**defaultKwargs, **kwargs}
         
-        if (kwargs['width'] is not None) & (kwargs['height'] is not None):
-            (w, h) = (kwargs['width'], kwargs['height'])
-        elif (kwargs['width'] is not None) & (kwargs['height'] is None):
-            w = kwargs['width']
+        if (kwargs['trgw'] is not None) & (kwargs['trgh'] is not None):
+            (w, h) = (kwargs['trgw'], kwargs['trgh'])
+        elif (kwargs['trgw'] is not None) & (kwargs['trgh'] is None):
+            w = kwargs['trgw']
             h = int(w*self.h/self.w)
-        elif (kwargs['width'] is None) & (kwargs['height'] is not None): 
-            h = kwargs['height']
+        elif (kwargs['trgw'] is None) & (kwargs['trgh'] is not None): 
+            h = kwargs['trgh']
             w = int(h*self.w/self.h)
         elif kwargs['ratio']>0:
             w = int(self.w*kwargs['ratio'])

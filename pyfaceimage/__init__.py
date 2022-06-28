@@ -8,7 +8,8 @@ from .dictim import (dir, deepcopy,
                    checksample, 
                    read, save, grayscale, cropoval,
                    croprect, resize, pad, mkboxscr, 
-                   sffilter, mkphasescr)
+                   sffilter, mkphasescr,
+                   mkcfs)
 
 from .multipleim import (mkcf)
 
@@ -18,4 +19,5 @@ __all__ = ['image',
            'read', 'save', 'grayscale', 'cropoval',
            'croprect', 'resize', 'pad', 'mkboxscr', 
            'sffilter', 'mkphasescr',
+           'mkcfs',
            'mkcf']

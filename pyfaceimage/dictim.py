@@ -1,7 +1,7 @@
 import os
 import random
 import copy
-from itertools import permutations
+from itertools import permutations, product
 
 from pyfaceimage import im, multipleim
 
@@ -33,20 +33,32 @@ def checksample(imdict, n=1, return_value=True):
 
 def mkcfs(imdict,  **kwargs):
     
-    defaultKwargs = {'misali':[0,0.5]}
+    defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True}
     kwargs = {**defaultKwargs, **kwargs}
+    
+    # check the number of im
+    nim = len(imdict)
+    assert nim>1, f'There should be more than one im in imdict... (Now {nim})'
+    
+    # generate ali and mis CF by default
     misali = kwargs['misali']
     if not(isinstance(misali, list) | isinstance(misali, tuple)):
         misali=[misali]
-    
-    nim = len(imdict)
-    assert nim>1, f'There should be more than one im in imdict... (Now {nim})'
+        
+    # generate for both top and bottom if showcue
+    if kwargs['showcue']:
+        cueistop = [1, 0]
+    else:
+        cueistop = kwargs['cueistop']
+    if not(isinstance(cueistop, list) | isinstance(cueistop, tuple)):
+        cueistop=[cueistop]
     
     cfdict = {}
     for (k1, k2) in permutations(sorted(imdict), 2):
          
-        for mis in misali: # both aligned and misaligned
+        for (mis, cue) in product(misali, cueistop): # both aligned and misaligned
             kwargs['misali']=mis
+            kwargs['cueistop']=cue
             tmpcf = multipleim.mkcf(imdict[k1], imdict[k2], **kwargs)
             cfdict[tmpcf.fnonly]=tmpcf
     

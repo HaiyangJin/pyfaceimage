@@ -1,6 +1,7 @@
 import os
 import random
 import copy
+import re
 from itertools import permutations, product
 
 from pyfaceimage import im, multipleim
@@ -12,6 +13,18 @@ def dir(path='.', imgtype='.png', read=True):
     print(f'Found {len(imdict)} files...')
     
     return imdict
+
+def dirs(path='.', folderwd='.', **kwargs):
+    
+    # find all subfolders
+    subfolders = [f for f in os.listdir(path) if 
+                  (os.path.isdir(os.path.join(path,f)) # is a dir
+                   & (re.match(re.compile(folderwd), f) is not None))] # match the folderwd
+    
+    # dir from all sub-folders
+    imdicts = {s:dir(path=os.path.join(path, s), **kwargs) for s in subfolders}
+    
+    return imdicts
 
 def deepcopy(imdict):
     return copy.deepcopy(imdict)
@@ -64,7 +77,6 @@ def mkcfs(imdict,  **kwargs):
     
     return cfdict
     
-
 
 def read(imdict):
     # read the images if read was False in dir()

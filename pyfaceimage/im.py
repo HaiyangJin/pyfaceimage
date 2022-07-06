@@ -170,7 +170,7 @@ class image:
     
     def resize(self, **kwargs):
         # resize the image
-        defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0}
+        defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0, 'extrafolder':None}
         kwargs = {**defaultKwargs, **kwargs}
         
         if (kwargs['trgw'] is not None) & (kwargs['trgh'] is not None):
@@ -188,11 +188,16 @@ class image:
             raise 'Cannot determine the desired dimentions...'
         
         kwargs['size'] = (w,h)
+        if (kwargs['extrafolder'] is None):
+            extrafolder = str(w)+'_'+str(h)
+        else:
+            extrafolder = kwargs['extrafolder']
+            
         [kwargs.pop(k) for k in defaultKwargs.keys()] # remove unused keys
-        
+                
         # save re-sized images (information)
         self._repil(self.pil.resize(**kwargs))
-        self.refile(self._updatefile(extrafolder=str(w)+'_'+str(h)))
+        self.refile(self._updatefile(extrafolder=extrafolder))
         
     def pad(self, **kwargs):
         """Add padding to the image/stimuli.

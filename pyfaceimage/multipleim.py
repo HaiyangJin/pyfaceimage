@@ -29,16 +29,21 @@ def mkcf(im1, im2, **kwargs):
     """
     
     defaultKwargs = {'misali':0, 'topis1': True, 'cueistop': True,
-                     'lineh':3, 'width_cf': im1.w*3, 'lineclr':(255,255,255),  # white line
+                     'lineh':3, 'width_cf': im1.w*3, 'lineclr': None,
                      'showcue':False, 'cuethick': 4, 'cuew': int(im1.w*1.1), 'cueh': int(im1.h*.05), 'cuedist': None}
     kwargs = {**defaultKwargs, **kwargs}
     
+    # decide the width of the output CF image
     w_cf = kwargs['width_cf']
     if isinstance(kwargs['misali'], int):
         misali = kwargs['misali']
     else:
         misali = int(kwargs['misali']*im1.w)
     assert (misali+im1.w/2)<=w_cf/2, f'Please make sure the width of the composite face ({w_cf}) is set appropriately to fit the misalignment ({misali}).'
+    
+    # generate the default color for the (white) line
+    if kwargs['lineclr'] is None: 
+        kwargs['lineclr'] = (255,) * im1.nlayer # white line
         
     alistrs = ['ali', 'mis']
     bboxes = [(0, 0, im1.w, im1.h/2), (0, im1.h/2, im1.w, im1.h)] # top, bottom

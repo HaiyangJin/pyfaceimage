@@ -135,6 +135,76 @@ class image:
         self._repil(ImageOps.grayscale(self.pil))
         self.refile(self._updatefile(extrafn='_gray'))
         
+    def _logit(self, ratio=None, correction=0.00001):
+        
+        if ratio is None:
+            self.grayscale()
+            ratio = self.mat/255
+        elif type(ratio) is not np.ndarray:
+            ratio = np.array(ratio)
+            
+        ratio[ratio==1] = (255-correction)/255
+        ratio[ratio==0] = correction/255
+        
+        return np.log(ratio/(1-ratio))
+        
+    def _sigmoid(self, logodds, correction=0.00001):
+                       
+        ratio = np.exp(logodds)/(np.exp(logodds)+1)
+        ratio[ratio>=(1-correction)] = 1
+        ratio[ratio<=(correction)] = 0
+        
+        gray = ratio * 255
+        
+        return gray.astype(dtype=np.uint8)
+        
+        
+    def adjust(self, lum=None, rms=None, mask=None):
+        # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
+        
+        # default for mask
+        if self.nlayer in (2,4):
+            alpha = self.mat[...,-1]
+            isalpha = True
+        else:
+            alpha = np.ones((self.h, self.w))*255
+            isalpha = False
+        if mask is None:
+            mask = (alpha/255).astype(dtype=bool)
+        
+        # force the image to be gray-scaled
+        self.grayscale()
+        ratio = self.mat/255
+        logodds = self._logit(ratio)
+        
+        # in ratio
+        rmsratio = np.std(ratio[mask]-np.mean(ratio[mask]))
+        
+        # in log odds
+        meanlo = np.mean(logodds[mask])
+        stdlo = np.std(logodds[mask]-meanlo)
+        
+        if lum is not None:
+            lumlo = self._logit(lum)
+        else:
+            lumlo = meanlo
+            
+        if rms is not None:
+            rmslo = rms * stdlo / rmsratio
+        else:
+            rmslo = stdlo
+           
+        newlo = logodds
+        # apply the new luminance (in logodds)
+        newlo[mask] = (logodds[mask] - meanlo)/stdlo * rmslo + lumlo
+        newmat = self._sigmoid(newlo)
+        
+        if isalpha:
+            newmat = np.concatenate((newmat[...,np.newaxis], alpha[...,np.newaxis]), axis=2)
+        
+        self.remat(newmat.astype(dtype=np.uint8))
+
+        
     def cropoval(self, radius=(100,128), bgcolor=None):
         
         # for instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent

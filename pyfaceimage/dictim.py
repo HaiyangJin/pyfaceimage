@@ -77,6 +77,8 @@ def mkcfs(imdict,  **kwargs):
     
     return cfdict
     
+def adjust(imdict, **kwargs):
+    [v.adjust(**kwargs) for v in imdict.values()]
 
 def read(imdict):
     # read the images if read was False in dir()

@@ -133,7 +133,6 @@ class image:
     def grayscale(self):
         # convert image to gray-scale
         self._repil(ImageOps.grayscale(self.pil))
-        self.refile(self._updatefile(extrafn='_gray'))
         
     def _logit(self, ratio=None, correction=0.00001):
         

@@ -19,6 +19,7 @@ def mkcf(im1, im2, **kwargs):
         width_cf (int): the width of the composite face/the line (also the width of the output composite face image). Defaults to three times of the face width.
         lineclr (int tuple): the color of the line. Defaults to (255,255,255), i.e., white.
         showcue (bool): whether to display cue in the image. Defaults to False.
+        cueclr (int tuple): the color of the cue. Defaults to the same as lineclr.
         cuethick (int): the thickness (in pixels) of the cue. Defaults to 4.
         cuew (int): the width (in pixels) of the cue. Defaults to 110% of the face width.
         cueh (int): the height (in pixels) of the very left and right parts of the cue. Defaults to about 5% of the face height.
@@ -30,7 +31,8 @@ def mkcf(im1, im2, **kwargs):
     
     defaultKwargs = {'misali':0, 'topis1': True, 'cueistop': True,
                      'lineh':3, 'width_cf': im1.w*3, 'lineclr': None,
-                     'showcue':False, 'cuethick': 4, 'cuew': int(im1.w*1.1), 'cueh': int(im1.h*.05), 'cuedist': None}
+                     'showcue':False, 'cueclr':None,
+                     'cuethick': 4, 'cuew': int(im1.w*1.1), 'cueh': int(im1.h*.05), 'cuedist': None}
     kwargs = {**defaultKwargs, **kwargs}
     
     # decide the width of the output CF image
@@ -44,6 +46,13 @@ def mkcf(im1, im2, **kwargs):
     # generate the default color for the (white) line
     if kwargs['lineclr'] is None: 
         kwargs['lineclr'] = (255,) * im1.nlayer # white line
+    else:
+        assert len(kwargs['lineclr'])==im1.nlayer, f"The lenght of 'lineclr' should match im1.nlayer({im1.nlayer})"
+        
+    if kwargs['cueclr'] is None: 
+        kwargs['cueclr'] = kwargs['lineclr']
+    else:
+        assert len(kwargs['cueclr'])==im1.nlayer, f"The lenght of 'cueclr' should match im1.nlayer({im1.nlayer})"
         
     alistrs = ['ali', 'mis']
     bboxes = [(0, 0, im1.w, im1.h/2), (0, im1.h/2, im1.w, im1.h)] # top, bottom
@@ -75,13 +84,13 @@ def mkcf(im1, im2, **kwargs):
         cue1 = Image.new(im1.pil.mode, (w_cf, kwargs['cuedist']))
         cue2 = cue1.copy()
         drawc = ImageDraw.Draw(cue1)
-        drawc.rectangle(((w_cf-kwargs['cuew'])//2,0,(w_cf+kwargs['cuew'])//2-1,kwargs['cuethick']-1),fill=kwargs['lineclr'])
+        drawc.rectangle(((w_cf-kwargs['cuew'])//2,0,(w_cf+kwargs['cuew'])//2-1,kwargs['cuethick']-1),fill=kwargs['cueclr'])
         drawc.rectangle(((w_cf-kwargs['cuew'])//2,kwargs['cuethick'],
                         (w_cf-kwargs['cuew'])//2+kwargs['cuethick']-1,kwargs['cueh']+kwargs['cuethick']-1),
-                        fill=kwargs['lineclr'])
+                        fill=kwargs['cueclr'])
         drawc.rectangle(((w_cf+kwargs['cuew'])//2-kwargs['cuethick'],kwargs['cuethick'],
                         (w_cf+kwargs['cuew'])//2-1,kwargs['cueh']+kwargs['cuethick']-1),
-                        fill=kwargs['lineclr'])
+                        fill=kwargs['cueclr'])
         cues = [cue1, cue2]
         
         # concatenate CF and cues

@@ -1,3 +1,7 @@
+"""
+Functions to deal with a group of images with dictionary.
+"""
+
 import os
 import random
 import copy
@@ -86,6 +90,9 @@ def read(imdict):
 
 def save(imdict, **kwargs):
     [v.save(**kwargs) for v in imdict.values()]
+    
+def torgba(imdict, **kwargs):
+    [v.torgba(**kwargs) for v in imdict.values()]
     
 def grayscale(imdict, **kwargs):
     [v.grayscale(**kwargs) for v in imdict.values()] 

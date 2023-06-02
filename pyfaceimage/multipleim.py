@@ -1,4 +1,5 @@
-"""Functions to play with more than one images.
+"""
+Functions to play with multiple (more than one) images.
 """
 
 import os

@@ -1,5 +1,5 @@
 """
-The class to process single images.    
+A class to process a single image.    
 """
     
 import os
@@ -128,7 +128,7 @@ class image:
         self.rgbmat = rgbmat
         self.amat = amat
         self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
-        self._updatefrommat()
+        self.remat(self.mat)
         
     def grayscale(self):
         # convert image to gray-scale
@@ -156,7 +156,6 @@ class image:
         gray = ratio * 255
         
         return gray.astype(dtype=np.uint8)
-        
         
     def adjust(self, lum=None, rms=None, mask=None):
         # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
@@ -208,7 +207,7 @@ class image:
         
         # for instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent
         
-        # for circle
+        # to make circle
         if type(radius) is not tuple:
             radius = (radius, radius) # a and b in ellipse formula
         bbox = (self.w/2-radius[0], self.h/2-radius[1], self.w/2+radius[0], self.h/2+radius[1])
@@ -392,6 +391,37 @@ class image:
         # save box-scrambled images (and information)
         self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
         self.refile(self._updatefile(extrafn='_bscr'))
+        
+    def mkphasescr(self, **kwargs):
+        defaultKwargs = {'rms':0.3}
+        kwargs = {**defaultKwargs, **kwargs}
+        
+        # make a random phase
+        randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
+
+        if self.nlayer==0:
+            nlayer = 1
+            mat = self.mat[..., np.newaxis] # add one more axis
+        else:
+            nlayer = self.nlayer
+            mat = self.mat
+            
+        outmat = np.empty(mat.shape)
+        outmat[:] = np.NaN
+        
+        for i in range(nlayer):
+            img_freq = np.fft.fft2(self._stdim(mat[:,:,i], kwargs['rms']))
+            amp = np.abs(img_freq)
+            phase = np.angle(img_freq) + randphase
+            outimg = np.real(np.fft.ifft2(amp * np.exp(np.sqrt(-1+0j)*phase)))
+            stdimg1= self._stdim(outimg, kwargs['rms'])
+            outmat[:,:,i] = (stdimg1+1)/2*255
+            
+        if self.nlayer==0:
+            outmat = outmat[:,:,0]
+        
+        self.remat(np.uint8(outmat))
+        self.refile(self._updatefile(extrafn='_pscr'))
     
     def sffilter(self, **kwargs):
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
@@ -454,34 +484,7 @@ class image:
         mat = np.clip(mat, a_min=-1.0, a_max=1.0)
         return mat
 
-    def mkphasescr(self, **kwargs):
-        defaultKwargs = {'rms':0.3}
-        kwargs = {**defaultKwargs, **kwargs}
+ 
         
-        # make a random phase
-        randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
-
-        if self.nlayer==0:
-            nlayer = 1
-            mat = self.mat[..., np.newaxis] # add one more axis
-        else:
-            nlayer = self.nlayer
-            mat = self.mat
-            
-        outmat = np.empty(mat.shape)
-        outmat[:] = np.NaN
-        
-        for i in range(nlayer):
-            img_freq = np.fft.fft2(self._stdim(mat[:,:,i], kwargs['rms']))
-            amp = np.abs(img_freq)
-            phase = np.angle(img_freq) + randphase
-            outimg = np.real(np.fft.ifft2(amp * np.exp(np.sqrt(-1+0j)*phase)))
-            stdimg1= self._stdim(outimg, kwargs['rms'])
-            outmat[:,:,i] = (stdimg1+1)/2*255
-            
-        if self.nlayer==0:
-            outmat = outmat[:,:,0]
-        
-        self.remat(np.uint8(outmat))
-        self.refile(self._updatefile(extrafn='_pscr'))
+    
         

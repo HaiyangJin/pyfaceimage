@@ -13,6 +13,8 @@ from .dictim import (dir, deepcopy,
 
 from .multipleim import (mkcf)
 
+from .utilities import (radial_gradient)
+
 __all__ = ['image', 
            'dir', 'deepcopy',
            'sample', 
@@ -20,4 +22,5 @@ __all__ = ['image',
            'croprect', 'resize', 'pad', 'mkboxscr', 
            'sffilter', 'mkphasescr',
            'mkcfs',
-           'mkcf']
+           'mkcf',
+           'radial_gradient']

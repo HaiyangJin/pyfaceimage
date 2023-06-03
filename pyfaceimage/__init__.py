@@ -35,7 +35,7 @@ def dir(path=os.getcwd(), imwc='*.png', read=True, sep='/'):
     
     # list all files in the path
     imdict_root = _dir(path, imwc, read)
-    [im.setgroup('path') for im in imdict_root.values()] # update group info as 'path'    
+    [im._setgroup('path') for im in imdict_root.values()] # update group info as 'path'    
     
     # list all dirs in the subdirectories
     subdirs = [d for d in os.listdir(path) 
@@ -50,6 +50,9 @@ def dir(path=os.getcwd(), imwc='*.png', read=True, sep='/'):
         
     # flatten the dictionary
     if bool(sep): imdict = _flatten(imdict, sep=sep)      
+    
+    # set the global path
+    [im._setgpath(path) for im in imdict.values()]
     
     return imdict
 
@@ -96,6 +99,8 @@ def _flatten(imdict_nested, sep='/'):
         A flatten dictionary of images in the path and subdirs.
     """
     
+    assert not _isflatten(imdict_nested), 'It seems that the dictionary is already flatten...'
+    
     # initialize the flatten dictionary
     imdict_flat = {}
     for k,v in imdict_nested.items():
@@ -117,7 +122,7 @@ def _flatten(imdict_nested, sep='/'):
     return imdict_flat
 
 
-def _tonested(imdict_flat, sep='/'):
+def _nested(imdict_flat, sep='/'):
     """Convert the flatten dictionary to nested dictionary.
 
     Parameters
@@ -132,6 +137,8 @@ def _tonested(imdict_flat, sep='/'):
     dict
         A nested dictionary of images in the path and subdirs.
     """
+    
+    assert _isflatten(imdict_flat), 'It seems that the dictionary is already in nested...'
     
     # get all group names
     groups = set([im.group for im in imdict_flat.values()])
@@ -152,28 +159,98 @@ def _tonested(imdict_flat, sep='/'):
     return imdict_nested
 
 
-def deepcopy(imdict):
-    return copy.deepcopy(imdict)
+def _isflatten(imdict):
+    """Check if the dictionary is flatten.
 
-def sample(imdict, n=1, return_value=True):
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+
+    Returns
+    -------
+    bool
+        whether the dictionary is flatten.
+    """
+    # check if the dictionary is flatten
+    isflat = not any([isinstance(v, dict) for v in imdict.values()])
+    return isflat
+
+
+def sample(imdict, n=1, valueonly=True):
+    """Randomly sample n images from the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+    n : int, optional
+        number of images to be sampled, by default 1
+    valueonly : bool, optional
+        whether return the value (i.e., the image instance only), by default True. If False, the key-value pair will be returned.
+
+    Returns
+    -------
+    instance or list of tuples
+        randomly sampled value or key-value pair.
+    """
+    
+    # make sure the dictionary is flatten
+    if not _isflatten(imdict):
+        imdict = _flatten(imdict)
     
     # random select one image from dictionary to check the output
     assert n<=len(imdict)
     samples = random.sample(sorted(imdict.items()), n)
     
-    if return_value:
+    if valueonly:
+        # return the value (i.e., the image instance only)
         out = [v[1] for v in samples]
         if n==1:
             out = out[0]
     else:
+        # return the key-value pair/tuple
         out = samples
     
     return out
 
-def mkcfs(imdict,  **kwargs):
+
+def deepcopy(imdict):
+    """Deep copy the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+
+    Returns
+    -------
+    dict
+        A deep copied dictionary of images.
+    """
+    return copy.deepcopy(imdict)
+
+
+def mkcfs(imdict, **kwargs):
+    """Make composite faces for all possible combinations of images in the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+
+    Returns
+    -------
+    dict
+        A dictionary of composite faces.
+    """
     
     defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True}
     kwargs = {**defaultKwargs, **kwargs}
+    
+    # make sure the dictionary is flatten
+    if not _isflatten(imdict):
+        imdict = _flatten(imdict)
     
     # check the number of im
     nim = len(imdict)
@@ -192,6 +269,7 @@ def mkcfs(imdict,  **kwargs):
     if not(isinstance(cueistop, list) | isinstance(cueistop, tuple)):
         cueistop=[cueistop]
     
+    # generate all possible combinations of composite face images
     cfdict = {}
     for (k1, k2) in permutations(sorted(imdict), 2):
          
@@ -202,15 +280,24 @@ def mkcfs(imdict,  **kwargs):
             cfdict[tmpcf.fnonly]=tmpcf
     
     return cfdict
-    
-def adjust(imdict, **kwargs):
-    [v.adjust(**kwargs) for v in imdict.values()]
 
 def read(imdict):
-    # read the images if read was False in dir()
+    """read the images if read was False in dir()
+    """
     [v.read() for v in imdict.values()]
 
 def save(imdict, **kwargs):
+    """Save the image PIL.
+
+    Parameters
+    ----------
+    extrafn : str, optional
+        strings to be added before the extension, by default ''
+    newfolder : str, optional
+        folder name to replace the global directory or the last directory level, by default ''
+    kwargs : dict, optional
+        keyword arguments for matplotlib.pyplot.imsave(), by default {}
+    """
     [v.save(**kwargs) for v in imdict.values()]
     
 def torgba(imdict, **kwargs):
@@ -218,6 +305,9 @@ def torgba(imdict, **kwargs):
     
 def grayscale(imdict, **kwargs):
     [v.grayscale(**kwargs) for v in imdict.values()] 
+
+def adjust(imdict, **kwargs):
+    [v.adjust(**kwargs) for v in imdict.values()]
     
 def cropoval(imdict, **kwargs):
     [v.cropoval(**kwargs) for v in imdict.values()]
@@ -229,16 +319,34 @@ def resize(imdict, **kwargs):
     [v.resize(**kwargs) for v in imdict.values()]
     
 def pad(imdict, **kwargs):
+    """
+    Add padding to the image/stimuli.
+    
+    Kwargs
+    ----------
+    trgw: int, optional
+        the width of the target/desired stimuli. 
+    trgh: int, optional
+        the height of the target/desired stimuli.
+    padvalue: int, optional
+        padding value. Defaults to 0 (show as transparent if alpha channel exists).
+    top: bool, optional
+        padding more to top if needed. Defaults to True.
+    left: bool, optional 
+        padding more to left if needed. Defaults to True.
+    padalpha: int, optional
+        the transparent color. Defaults to -1, i.e., not to force it to transparent.
+    """
     [v.pad(**kwargs) for v in imdict.values()]
 
 def mkboxscr(imdict, **kwargs):
     [v.mkboxscr(**kwargs) for v in imdict.values()]
     
-def sffilter(imdict, **kwargs):
-    [v.sffilter(**kwargs) for v in imdict.values()]
-    
 def mkphasescr(imdict, **kwargs):
     [v.mkphasescr(**kwargs) for v in imdict.values()]
+    
+def sffilter(imdict, **kwargs):
+    [v.sffilter(**kwargs) for v in imdict.values()]
     
     
 

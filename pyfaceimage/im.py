@@ -2,83 +2,168 @@
 A class to process a single image.    
 """
     
-import os
+import os, warnings, copy
 from PIL import Image, ImageOps, ImageDraw
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
-import warnings
-import copy
 
 class image:
     def __init__(self, filename, read=False):
-        # make sure .file exists  os.getcwd()
+        """Create an image instance.
+
+        Parameters
+        ----------
+        filename : str
+            path and image filename.
+        read : bool, optional
+            Whether to read the image via PIL, by default False
+        """
+        # make sure the file exists 
         assert os.path.isfile(filename), f'Cannot find {filename}...'
         self.filename = filename
         self._updatefromfile() # update filename information
+        self._setgpath()
         if read: self.read()
         
+    def _updatefromfile(self):
+        """Update information from the filename.
+        """
+        self.fname = os.path.basename(self.filename)
+        self.fnonly = os.path.splitext(self.fname)[0]
+        self.ext = os.path.splitext(self.fname)[1]
+        self.dir = os.path.dirname(self.filename)
+        self._setgroup() 
+        self.isfile = os.path.isfile(self.filename)
+        
     def read(self):
+        """Read the image via PIL.
+        """
         self._repil(Image.open(self.filename)) # PIL.Image.open() 
         # potential useful functions
         # .filename .format, .mode, .split()
         
-    def setgroup(self, gname=''):
+    def _setgroup(self, gname=''):
+        """Set the group name of the image.
+
+        Parameters
+        ----------
+        gname : str, optional
+            the group name, by default the upper directory name of the image.
+        """
         # update group information
         if not bool(gname):
+            print('test')
             gname = os.path.split(os.path.dirname(self.filename))[1]
         self.group = gname
         
+    def _setgpath(self, gpath=''):
+        """Set the global path of the image (among other images). [This atribute matters only when mutiltple images are processed together. more see dir().]
+
+        Parameters
+        ----------
+        gpath : str, optional
+            global path, i.e. path in dir(), by default ''
+        """
+        self.globalpath = gpath
+        
     def imshow(self):
+        """Show the image matrix.
+        """
         # for debugging purpose (check the mat)
         # it seems that .show() is more useful
         Image.fromarray(self.mat).show()
         
     def show(self):
+        """Show the image PIL.
+        """
         # for debugging purpose (check the PIL)
         self.pil.show()
 
-    def imsave(self, extrafn='', extrafolder='.', **kwargs):
-        # use matplotlib.pyplot.imsave() to save .mat
-        self.outfile = self._updatefile(extrafn, extrafolder)
+    def imsave(self, extrafn='', newfolder='', **kwargs):
+        """Save the image mat.
+
+        Parameters
+        ----------
+        extrafn : str, optional
+            strings to be added before the extension, by default ''
+        newfolder : str, optional
+            folder name to replace the global directory or the last directory level, by default ''
+        kwargs : dict, optional
+            keyword arguments for matplotlib.pyplot.imsave(), by default {}
+        """
+        # update the filename
+        self.outfile = self._newfilename(extrafn, newfolder)
         
         # make dir(s)
         if not os.path.isdir(os.path.dirname(self.outfile)):
             os.makedirs(os.path.dirname(self.outfile))
-            
-        if self.nlayer==1:
+        if self.nchan==1:
             outmat = self.mat[:,:,0]
         else:
             outmat = self.mat
-            
+        
+        # use matplotlib.pyplot.imsave() to save .mat
         mpimg.imsave(self.outfile,outmat.copy(order='C'),**kwargs)
         
-    def save(self, extrafn='', extrafolder='.', **kwargs):
-        # use PIL.Image.save() to save .pil        
-        self.outfile = self._updatefile(extrafn, extrafolder)
+        
+    def save(self, extrafn='', newfolder='', **kwargs):
+        """Save the image PIL.
+
+        Parameters
+        ----------
+        extrafn : str, optional
+            strings to be added before the extension, by default ''
+        newfolder : str, optional
+            folder name to replace the global directory or the last directory level, by default ''
+        kwargs : dict, optional
+            keyword arguments for matplotlib.pyplot.imsave(), by default {}
+        """
+        # update the filename
+        self.outfile = self._newfilename(extrafn, newfolder)
         
         # make dir(s)
         if not os.path.isdir(os.path.dirname(self.outfile)):
             os.makedirs(os.path.dirname(self.outfile))
         
+        # use PIL.Image.save() to save .pil    
         self.pil.save(self.outfile, format=None, **kwargs)
         
-    def _updatefile(self, extrafn='', extrafolder='.'):
-        # update file with extra fn or extra (sub)folder
-        file = os.path.splitext(self.filename)[0]+extrafn+os.path.splitext(self.filename)[1]
-        file = os.path.join(os.path.dirname(file), extrafolder, os.path.basename(file))
-        return file
+        
+    def _newfilename(self, extrafn='', newfolder=''):
+        """Update the filename with extrafn and newfolder.
+
+        Parameters
+        ----------
+        extrafn : str, optional
+            strings to be added before the extension, by default ''
+        newfolder : str, optional
+            folder name to replace the global directory or the last directory level, by default ''
+        """
+        # update file with extra fname or extra (sub)folder
+        # insert extrafn before the extension
+        fname = os.path.splitext(self.fname)[0]+extrafn+os.path.splitext(self.fname)[1]
+        
+        # replace the path folder with newfolder
+        if bool(self.gpath):
+            # rename the global path and filename
+            group = self.group if self.group != 'path' else ''
+            self.filename = os.path.join(os.path.dirname(self.gpath), newfolder, group, fname)
+            self.gpath = os.path.join(os.path.dirname(self.gpath), newfolder)
+        else:
+            self.filename = os.path.join(os.path.dirname(self.filename), newfolder, fname)
         
     def deepcopy(self):
-        # make a deep copy of the instance
+        """make a deep copy of the instance
+        """
         return copy.deepcopy(self)
     
-    def refile(self, newfilename):
-        # rename the file and update the related information
-        self.filename = newfilename
-        self._updatefromfile()
-        if self.isfile:
-            warnings.warn(f"The file named '{self.filename}' already exists...")
+    # def _refilename(self, newfilename):
+    #     # rename the file and update the related information
+    #     self.filename = newfilename
+    #     self._updatefromfile()
+    #     if self.isfile:
+    #         warnings.warn(f"The file named '{self.filename}' already exists...")
             
     def remat(self, mat):
         # re-assign value to .mat and update related information
@@ -90,23 +175,15 @@ class image:
         self.pil = pil
         self.mat = np.asarray(self.pil)
         self._updatefrommat()
-    
-    def _updatefromfile(self):
-        self.fn = os.path.basename(self.filename)
-        self.fnonly = os.path.splitext(self.fn)[0]
-        self.ext = os.path.splitext(self.fn)[1]
-        self.dir = os.path.dirname(self.filename)
-        self.group = os.path.split(self.dir)[1] # the upper-level folder name
-        self.isfile = os.path.isfile(self.filename)
-        
+            
     def _updatefrommat(self):
         self.dims = self.mat.shape
         self.ndim = len(self.dims)
         if self.ndim==2:
             self.h, self.w = self.dims
-            self.nlayer = 0
+            self.nchan = 0
         elif self.ndim==3:
-            self.h, self.w, self.nlayer = self.dims
+            self.h, self.w, self.nchan = self.dims
         
     def torgba(self):
         # convert pil to RGBA and save in .mat
@@ -114,17 +191,17 @@ class image:
             self.mat = self.mat[..., np.newaxis]
         assert len(self.mat.shape)==3
         
-        nlayer = self.mat.shape[2]
-        if nlayer==1: # Gray 'L'
+        nchan = self.mat.shape[2]
+        if nchan==1: # Gray 'L'
             rgbmat = np.repeat(self.mat, 3, axis=2) # RGB
             amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
-        elif nlayer==2: # Gray 'LA'
+        elif nchan==2: # Gray 'LA'
             rgbmat = np.repeat(self.mat[:,:,0:1], 3, axis=2) # RGB
             amat = self.mat[:,:,-1] # alpha
-        elif nlayer==3: # RGB
+        elif nchan==3: # RGB
             rgbmat = self.mat # RGB
             amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
-        elif nlayer==4: # RGBA
+        elif nchan==4: # RGBA
             rgbmat = self.mat[:,:,0:3]
             amat = self.mat[:,:,-1]
             
@@ -164,7 +241,7 @@ class image:
         # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
         
         # default for mask
-        if self.nlayer in (2,4):
+        if self.nchan in (2,4):
             alpha = self.mat[...,-1]
             isalpha = True
         else:
@@ -228,7 +305,7 @@ class image:
             draw.ellipse(bbox, fill=255)
             self.pil = Image.composite(self.pil, pil_2, pil_a)
         else:
-            # only apply cropping to the alpha layer
+            # only apply cropping to the alpha channel
             self.pil.putalpha(pil_a)
         # update to pil        
         self._repil(self.pil)
@@ -241,7 +318,7 @@ class image:
     
     def resize(self, **kwargs):
         # resize the image
-        defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0, 'extrafolder':None}
+        defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0, 'newfolder':None}
         kwargs = {**defaultKwargs, **kwargs}
         
         if (kwargs['trgw'] is not None) & (kwargs['trgh'] is not None):
@@ -259,27 +336,35 @@ class image:
             raise 'Cannot determine the desired dimentions...'
         
         kwargs['size'] = (w,h)
-        if (kwargs['extrafolder'] is None):
-            extrafolder = str(w)+'_'+str(h)
+        if (kwargs['newfolder'] is None):
+            newfolder = str(w)+'_'+str(h)
         else:
-            extrafolder = kwargs['extrafolder']
+            newfolder = kwargs['newfolder']
             
         [kwargs.pop(k) for k in defaultKwargs.keys()] # remove unused keys
                 
         # save re-sized images (information)
         self._repil(self.pil.resize(**kwargs))
-        self.refile(self._updatefile(extrafolder=extrafolder))
+        self.refile(self._newfilename(newfolder=newfolder))
         
-    def pad(self, **kwargs):
-        """Add padding to the image/stimuli.
-
-        Args:
-            trgw (int): the width of the target/desired stimuli. 
-            trgh (int): the height of the target/desired stimuli.
-            padvalue (int, optional): padding value. Defaults to 0 (show as transparent if alpha layer exists).
-            top (bool, optional): padding more to top if needed. Defaults to True.
-            left (bool, optional): padding more to left if needed. Defaults to True.
-            padalpha (int, optional): the transparent color. Defaults to -1, i.e., not to force it to transparent.
+    def pad(self, **kwargs):  
+        """
+        Add padding to the image/stimuli.
+        
+        Kwargs
+        ----------
+        trgw: int, optional
+            the width of the target/desired stimuli. 
+        trgh: int, optional
+            the height of the target/desired stimuli.
+        padvalue: int, optional
+            padding value. Defaults to 0 (show as transparent if alpha channel exists).
+        top: bool, optional
+            padding more to top if needed. Defaults to True.
+        left: bool, optional 
+            padding more to left if needed. Defaults to True.
+        padalpha: int, optional
+            the transparent color. Defaults to -1, i.e., not to force it to transparent.
         """
         
         defaultKwargs = {'trgw':self.w, 'trgh':self.h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1}
@@ -304,32 +389,32 @@ class image:
         else:
             wleft, wright = x2,x1
             
-        if self.nlayer==0:
-            nlayer = 1
+        if self.nchan==0:
+            nchan = 1
             mat = self.mat[..., np.newaxis] # add one more axis
         else:
-            nlayer = self.nlayer
+            nchan = self.nchan
             mat = self.mat
             
-        if (kwargs['padalpha']>=0) & (nlayer==1 | nlayer==3):
+        if (kwargs['padalpha']>=0) & (nchan==1 | nchan==3):
             mat = np.concatenate((mat, np.ones((self.h, self.w, 1), dtype=np.uint8)*kwargs['padalpha']),axis=2)
-            nlayer = nlayer + 1
+            nchan = nchan + 1
         
         padmat = np.hstack((
-            np.ones((trgh,wleft,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
+            np.ones((trgh,wleft,nchan),dtype=np.uint8)*kwargs['padvalue'], 
             np.vstack((
-                np.ones((htop,self.w,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
+                np.ones((htop,self.w,nchan),dtype=np.uint8)*kwargs['padvalue'], 
                 mat,
-                np.ones((hbot,self.w,nlayer),dtype=np.uint8)*kwargs['padvalue']
+                np.ones((hbot,self.w,nchan),dtype=np.uint8)*kwargs['padvalue']
             )),
-            np.ones((trgh,wright,nlayer),dtype=np.uint8)*kwargs['padvalue'], 
+            np.ones((trgh,wright,nchan),dtype=np.uint8)*kwargs['padvalue'], 
         ))
         
-        if (self.nlayer==0) & (kwargs['padalpha']<0):
+        if (self.nchan==0) & (kwargs['padalpha']<0):
             padmat = padmat[:,:,0]
         
         self.remat(padmat)
-        self.refile(self._updatefile(extrafn='_pad'))
+        self.refile(self._newfilename(extrafn='_pad'))
         
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
@@ -393,7 +478,7 @@ class image:
         
         # save box-scrambled images (and information)
         self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
-        self.refile(self._updatefile(extrafn='_bscr'))
+        self.refile(self._newfilename(extrafn='_bscr'))
         
     def mkphasescr(self, **kwargs):
         defaultKwargs = {'rms':0.3}
@@ -402,17 +487,17 @@ class image:
         # make a random phase
         randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
 
-        if self.nlayer==0:
-            nlayer = 1
+        if self.nchan==0:
+            nchan = 1
             mat = self.mat[..., np.newaxis] # add one more axis
         else:
-            nlayer = self.nlayer
+            nchan = self.nchan
             mat = self.mat
             
         outmat = np.empty(mat.shape)
         outmat[:] = np.NaN
         
-        for i in range(nlayer):
+        for i in range(nchan):
             img_freq = np.fft.fft2(self._stdim(mat[:,:,i], kwargs['rms']))
             amp = np.abs(img_freq)
             phase = np.angle(img_freq) + randphase
@@ -420,11 +505,11 @@ class image:
             stdimg1= self._stdim(outimg, kwargs['rms'])
             outmat[:,:,i] = (stdimg1+1)/2*255
             
-        if self.nlayer==0:
+        if self.nchan==0:
             outmat = outmat[:,:,0]
         
         self.remat(np.uint8(outmat))
-        self.refile(self._updatefile(extrafn='_pscr'))
+        self.refile(self._newfilename(extrafn='_pscr'))
     
     def sffilter(self, **kwargs):
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
@@ -475,7 +560,7 @@ class image:
         # convert the range to [0, 255]
         img_new = (img_new+1)/2*kwargs['maxvalue']
         self.remat(img_new)
-        self.refile(self._updatefile(extrafn='_'+kwargs['sffilter']+'_filtered'))
+        self.refile(self._newfilename(extrafn='_'+kwargs['sffilter']+'_filtered'))
     
     def _stdim(self, mat, rms=0.3):
         # standardize the image (the range of output should be -1,1)

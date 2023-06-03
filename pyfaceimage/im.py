@@ -11,20 +11,23 @@ import warnings
 import copy
 
 class image:
-    def __init__(self, file, dir=os.getcwd(), read=False):
+    def __init__(self, filename, read=False):
         # make sure .file exists  os.getcwd()
-        if not file.startswith(os.sep):
-            file = os.path.join(dir, file)
-        assert os.path.isfile(file), f'Cannot find {file}...'
-        self.file = file
+        assert os.path.isfile(filename), f'Cannot find {filename}...'
+        self.filename = filename
         self._updatefromfile() # update filename information
-        if read:
-            self.read()
+        if read: self.read()
         
     def read(self):
-        self._repil(Image.open(self.file)) # PIL.Image.open() 
+        self._repil(Image.open(self.filename)) # PIL.Image.open() 
         # potential useful functions
         # .filename .format, .mode, .split()
+        
+    def setgroup(self, gname=''):
+        # update group information
+        if not bool(gname):
+            gname = os.path.split(os.path.dirname(self.filename))[1]
+        self.group = gname
         
     def imshow(self):
         # for debugging purpose (check the mat)
@@ -62,7 +65,7 @@ class image:
         
     def _updatefile(self, extrafn='', extrafolder='.'):
         # update file with extra fn or extra (sub)folder
-        file = os.path.splitext(self.file)[0]+extrafn+os.path.splitext(self.file)[1]
+        file = os.path.splitext(self.filename)[0]+extrafn+os.path.splitext(self.filename)[1]
         file = os.path.join(os.path.dirname(file), extrafolder, os.path.basename(file))
         return file
         
@@ -72,10 +75,10 @@ class image:
     
     def refile(self, newfilename):
         # rename the file and update the related information
-        self.file = newfilename
+        self.filename = newfilename
         self._updatefromfile()
         if self.isfile:
-            warnings.warn(f"The file named '{self.file}' already exists...")
+            warnings.warn(f"The file named '{self.filename}' already exists...")
             
     def remat(self, mat):
         # re-assign value to .mat and update related information
@@ -89,12 +92,12 @@ class image:
         self._updatefrommat()
     
     def _updatefromfile(self):
-        self.fn = os.path.basename(self.file)
+        self.fn = os.path.basename(self.filename)
         self.fnonly = os.path.splitext(self.fn)[0]
         self.ext = os.path.splitext(self.fn)[1]
-        self.dir = os.path.dirname(self.file)
+        self.dir = os.path.dirname(self.filename)
         self.group = os.path.split(self.dir)[1] # the upper-level folder name
-        self.isfile = os.path.isfile(self.file)
+        self.isfile = os.path.isfile(self.filename)
         
     def _updatefrommat(self):
         self.dims = self.mat.shape

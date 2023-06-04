@@ -3,10 +3,10 @@ Utilities for pyfaceimage.
 """
 
 import numpy as np
+from pyfaceimage.im import image
 
 def radial_gradient(imsize=256, opaque=.5, power=2):
     """Make a radial gradient RGBA image (with some opaque region).
-    This code is inspired by https://github.com/python-pillow/Pillow/blob/3ab83f22ca36dcd21fc4a28d1c93066c2da75eb9/src/libImaging/Fill.c#L105
 
     Parameters
     ----------
@@ -19,13 +19,19 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
 
     Returns
     -------
-    np.array
+    im.image() instance
         A radial gradient RGBA image.
+    np.array
+        A radial gradient RGBA image matrix.
         
     Examples
     --------
     >>> im=radial_gradient() # make a default radial gradient image
     >>> im=radial_gradient((512, 256), .8, 3) # make a radial gradient image with size (512, 256), 80% opaque region, and power 3
+    
+    Notes
+    -----
+    This code is inspired by https://github.com/python-pillow/Pillow/blob/3ab83f22ca36dcd21fc4a28d1c93066c2da75eb9/src/libImaging/Fill.c#L105
     
     Created on 2023-June-1 by Haiyang Jin (https://haiyangjin.github.io/en/about/)
     """
@@ -33,7 +39,7 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
     # make circle if imsize is not tuple
     if type(imsize) is not tuple or len(imsize) == 1:
         imsize = (imsize, imsize) # a and b in ellipse formula
-    im = np.ones((imsize[1], imsize[0], 4), dtype=np.uint8) * 255
+    im_mat = np.ones((imsize[1], imsize[0], 4), dtype=np.uint8) * 255
     
     # set the opaque area
     if type(opaque) is not tuple or len(opaque) == 1:
@@ -46,8 +52,8 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
     d0 = np.sqrt(((imsize[0]/2-imsize[0]/2)/(opaque[0]/2))**2 + ((imsize[1]/2)/(opaque[1]/2))**2)
     # whether a pixel is in the opaque area
     gradients = np.ones((imsize[1], imsize[0])) * 255
-    for x in range(im.shape[1]):
-        for y in range(im.shape[0]):
+    for x in range(im_mat.shape[1]):
+        for y in range(im_mat.shape[0]):
             # inner oval/circle (inside is the opaque area)
             d1 = np.sqrt(((x - imsize[0]/2)/(opaque[0]/2))**2 + ((y - imsize[1]/2)/(opaque[1]/2))**2)
             # outer oval/circle (outside is the transparent area)
@@ -62,7 +68,11 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
     tmpmin = np.min(gradients)
     assert tmpmin==-d0**power, 'Something unknown went wrong.'
     # update the alpha channel as gradient transparent
-    im[:,:,3] = np.clip((gradients - tmpmin) * 254 / (tmpmax - tmpmin), 0, 254).astype(np.uint8)
+    im_mat[:,:,3] = np.clip((gradients - tmpmin) * 254 / (tmpmax - tmpmin), 0, 254).astype(np.uint8)
     
-    return im
+    # save it to an image instance
+    im = image('')
+    im.remat(im_mat)
+    
+    return im, im_mat
 

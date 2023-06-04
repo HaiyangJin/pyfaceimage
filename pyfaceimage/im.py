@@ -20,20 +20,20 @@ class image:
             Whether to read the image via PIL, by default False
         """
         # make sure the file exists 
-        assert os.path.isfile(filename), f'Cannot find {filename}...'
+        assert os.path.isfile(filename) | (not bool(filename)), f'Cannot find {filename}...'
         self.filename = filename
-        self._updatefromfile() # update filename information
+        self._updatefromfilename() # update filename information
+        self._setgroup() 
         self._setgpath()
         if read: self.read()
         
-    def _updatefromfile(self):
+    def _updatefromfilename(self):
         """Update information from the filename.
         """
         self.fname = os.path.basename(self.filename)
         self.fnonly = os.path.splitext(self.fname)[0]
         self.ext = os.path.splitext(self.fname)[1]
-        self.dir = os.path.dirname(self.filename)
-        self._setgroup() 
+        self.dirname = os.path.dirname(self.filename)
         self.isfile = os.path.isfile(self.filename)
         
     def read(self):
@@ -53,7 +53,6 @@ class image:
         """
         # update group information
         if not bool(gname):
-            print('test')
             gname = os.path.split(os.path.dirname(self.filename))[1]
         self.group = gname
         
@@ -65,7 +64,7 @@ class image:
         gpath : str, optional
             global path, i.e. path in dir(), by default ''
         """
-        self.globalpath = gpath
+        self.gpath = gpath
         
     def imshow(self):
         """Show the image matrix.
@@ -80,90 +79,97 @@ class image:
         # for debugging purpose (check the PIL)
         self.pil.show()
 
-    def imsave(self, extrafn='', newfolder='', **kwargs):
+    def imsave(self, newfname='', newfolder='', addfn=True, **kwargs):
         """Save the image mat.
 
         Parameters
         ----------
-        extrafn : str, optional
+        newfname : str, optional
             strings to be added before the extension, by default ''
         newfolder : str, optional
             folder name to replace the global directory or the last directory level, by default ''
+        addfn : bool, optional
+            whether to add the newfname to the the original fname (instead of replacing it), by default True
         kwargs : dict, optional
             keyword arguments for matplotlib.pyplot.imsave(), by default {}
         """
         # update the filename
-        self.outfile = self._newfilename(extrafn, newfolder)
+        self._newfilename(newfname, newfolder, addfn=addfn)
         
         # make dir(s)
-        if not os.path.isdir(os.path.dirname(self.outfile)):
-            os.makedirs(os.path.dirname(self.outfile))
+        if not os.path.isdir(os.path.dirname(self.filename)):
+            os.makedirs(os.path.dirname(self.filename))
         if self.nchan==1:
             outmat = self.mat[:,:,0]
         else:
             outmat = self.mat
         
         # use matplotlib.pyplot.imsave() to save .mat
-        mpimg.imsave(self.outfile,outmat.copy(order='C'),**kwargs)
+        mpimg.imsave(self.filename,outmat.copy(order='C'),**kwargs)
+        self.isfile = os.path.isfile(self.filename)
         
         
-    def save(self, extrafn='', newfolder='', **kwargs):
+    def save(self, newfname='', newfolder='', addfn=True, **kwargs):
         """Save the image PIL.
 
         Parameters
         ----------
-        extrafn : str, optional
+        newfname : str, optional
             strings to be added before the extension, by default ''
         newfolder : str, optional
             folder name to replace the global directory or the last directory level, by default ''
+        addfn : bool, optional
+            whether to add the newfname to the the original fname (instead of replacing it), by default True
         kwargs : dict, optional
             keyword arguments for matplotlib.pyplot.imsave(), by default {}
         """
         # update the filename
-        self.outfile = self._newfilename(extrafn, newfolder)
+        self._newfilename(newfname, newfolder, addfn=addfn)
         
         # make dir(s)
-        if not os.path.isdir(os.path.dirname(self.outfile)):
-            os.makedirs(os.path.dirname(self.outfile))
+        if not os.path.isdir(os.path.dirname(self.filename)):
+            os.makedirs(os.path.dirname(self.filename))
         
         # use PIL.Image.save() to save .pil    
-        self.pil.save(self.outfile, format=None, **kwargs)
+        self.pil.save(self.filename, format=None, **kwargs)
+        self.isfile = os.path.isfile(self.filename)
         
         
-    def _newfilename(self, extrafn='', newfolder=''):
-        """Update the filename with extrafn and newfolder.
+    def _newfilename(self, newfname='', newfolder='', addfn=True):
+        """Update the filename with newfname and newfolder.
 
         Parameters
         ----------
-        extrafn : str, optional
+        newfname : str, optional
             strings to be added before the extension, by default ''
         newfolder : str, optional
             folder name to replace the global directory or the last directory level, by default ''
+        addfn : bool, optional
+            whether to add the newfname to the the original fname (instead of replacing it), by default True
         """
-        # update file with extra fname or extra (sub)folder
-        # insert extrafn before the extension
-        fname = os.path.splitext(self.fname)[0]+extrafn+os.path.splitext(self.fname)[1]
+        # apply newfname to the old one
+        oldfname = os.path.splitext(self.fname)[0] if addfn else ''
+        fname = oldfname+newfname+os.path.splitext(self.fname)[1]
         
         # replace the path folder with newfolder
         if bool(self.gpath):
             # rename the global path and filename
+            foldername = newfolder if bool(newfolder) else os.path.basename(self.gpath) # apply newfolder to the old one if needed
             group = self.group if self.group != 'path' else ''
-            self.filename = os.path.join(os.path.dirname(self.gpath), newfolder, group, fname)
-            self.gpath = os.path.join(os.path.dirname(self.gpath), newfolder)
+            self.filename = os.path.join(os.path.dirname(self.gpath), foldername, group, fname)
+            self.gpath = os.path.join(os.path.dirname(self.gpath), foldername)
         else:
-            self.filename = os.path.join(os.path.dirname(self.filename), newfolder, fname)
+            foldername = newfolder if bool(newfolder) else os.path.basename(self.dirname) # apply newfolder to the old one if needed
+            self.filename = os.path.join(os.path.dirname(self.filename), foldername, fname)
+        
+        self._updatefromfilename()
+        if self.isfile:
+            warnings.warn("The file named '%s' already exists..." % {self.filename})
         
     def deepcopy(self):
         """make a deep copy of the instance
         """
         return copy.deepcopy(self)
-    
-    # def _refilename(self, newfilename):
-    #     # rename the file and update the related information
-    #     self.filename = newfilename
-    #     self._updatefromfile()
-    #     if self.isfile:
-    #         warnings.warn(f"The file named '{self.filename}' already exists...")
             
     def remat(self, mat):
         # re-assign value to .mat and update related information
@@ -345,7 +351,7 @@ class image:
                 
         # save re-sized images (information)
         self._repil(self.pil.resize(**kwargs))
-        self.refile(self._newfilename(newfolder=newfolder))
+        self._newfilename(newfolder=newfolder)
         
     def pad(self, **kwargs):  
         """
@@ -414,7 +420,7 @@ class image:
             padmat = padmat[:,:,0]
         
         self.remat(padmat)
-        self.refile(self._newfilename(extrafn='_pad'))
+        self._newfilename(newfname='_pad')
         
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
@@ -478,7 +484,7 @@ class image:
         
         # save box-scrambled images (and information)
         self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
-        self.refile(self._newfilename(extrafn='_bscr'))
+        self._newfilename(newfname='_bscr')
         
     def mkphasescr(self, **kwargs):
         defaultKwargs = {'rms':0.3}
@@ -509,7 +515,7 @@ class image:
             outmat = outmat[:,:,0]
         
         self.remat(np.uint8(outmat))
-        self.refile(self._newfilename(extrafn='_pscr'))
+        self._newfilename(newfname='_pscr')
     
     def sffilter(self, **kwargs):
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
@@ -560,7 +566,7 @@ class image:
         # convert the range to [0, 255]
         img_new = (img_new+1)/2*kwargs['maxvalue']
         self.remat(img_new)
-        self.refile(self._newfilename(extrafn='_'+kwargs['sffilter']+'_filtered'))
+        self._newfilename(newfname='_'+kwargs['sffilter']+'_filtered')
     
     def _stdim(self, mat, rms=0.3):
         # standardize the image (the range of output should be -1,1)

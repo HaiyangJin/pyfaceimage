@@ -231,20 +231,67 @@ def deepcopy(imdict):
     return copy.deepcopy(imdict)
 
 
-def mkcfs(imdict, **kwargs):
+def mkcfs(imdict, sep='/', **kwargs):
     """Make composite faces for all possible combinations of images in the dictionary.
-
-    Parameters
-    ----------
+    
+    Arguments
+    ---------
     imdict : dict
         A dictionary of images.
+    sep : str, optional
+        a string to be used to concatnate the subdirectory and image name, which is used as the key for flattening the dictionary, by default '/'. If sep is None, the dictionary will not be flatten.
+   
+    Keyword Arguments
+    -----------------
+    misali : int, num
+        misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to 0.
+    topis1 : bool
+        whether im1 (or im2) is used as the top of the composite face. Defaults to True.
+    cueistop : bool
+        whether the top half is cued. Defaults to True.
+    lineh : int
+        the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.
+    width_cf : int
+        the width of the composite face/the line (also the width of the output composite face image). Defaults to three times of the face width.
+    lineclr : int tuple
+        the color of the line. Defaults to (255,255,255), i.e., white.
+    showcue : bool
+        whether to display cue in the image. Defaults to False.
+    cueclr : int tuple
+        the color of the cue. Defaults to the same as lineclr.
+    cuethick : int
+        the thickness (in pixels) of the cue. Defaults to 4.
+    cuew : int
+        the width (in pixels) of the cue. Defaults to 110% of the face width.
+    cueh : int
+        the height (in pixels) of the very left and right parts of the cue. Defaults to about 5% of the face height.
+    cuedist : int
+        distance from the main part of the cue to edge of the face. Defaults to twice of cueh.
 
     Returns
     -------
-    dict
-        A dictionary of composite faces.
+    A dictionary of im.image() instance
+        the composite face stimuli as a im.image() instance.
     """
     
+    if len(set([im.group for im in imdict.values()])) > 1 and bool(sep):
+        imdict_nested = _nested(imdict, sep=sep)
+        
+        cfdict_nested = {}
+        for k,v in imdict_nested.items():
+            cfdict_nested[k] = _mkcfs(v, **kwargs)
+        
+        cfdict = _flatten(cfdict_nested, sep=sep)
+            
+    else:
+        cfdict = _mkcfs(imdict, **kwargs)
+            
+    return cfdict
+    
+    
+def _mkcfs(imdict, **kwargs):
+    """Please refer to mkcfs() for more details.
+    """
     defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True}
     kwargs = {**defaultKwargs, **kwargs}
     
@@ -276,8 +323,8 @@ def mkcfs(imdict, **kwargs):
         for (mis, cue) in product(misali, cueistop): # both aligned and misaligned
             kwargs['misali']=mis
             kwargs['cueistop']=cue
-            tmpcf = mkcf(imdict[k1], imdict[k2], **kwargs)
-            cfdict[tmpcf.fnonly]=tmpcf
+            tmpcf, cf_fn = mkcf(imdict[k1], imdict[k2], **kwargs)
+            cfdict[cf_fn]=tmpcf
     
     return cfdict
 

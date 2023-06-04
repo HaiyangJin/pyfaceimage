@@ -135,5 +135,38 @@ def mkcf(im1, im2, **kwargs):
         
     return im_cf, fn_cf
     
+
+def composite(im_back, im_fore):
+    """Paste im_fore to im_back. im_back should not be smaller than im_fore.
+
+    Parameters
+    ----------
+    im_back : im.image() instance
+        the background image.
+    im_fore : im.image() instance
+        the foreground image.
+
+    Returns
+    -------
+    im.image() instance
+        the final image.
+    """
+    
+    # im_back should not be smaller than im_fore
+    assert im_back.w>=im_fore.w and im_back.h>=im_fore.h, f'im_back (({im_back.w, im_back.h})) should not be smaller than im_fore (({im_fore.w, im_fore.h})) .'
+    
+    # pad im_fore if necessary
+    if im_back.w>=im_fore.w or im_back.h>=im_fore.h: 
+        im_fore.pad(trgw=im_back.w, trgh=im_back.h)
+    
+    # paste im_fore to im_back
+    im_back.pil.paste(im_fore.pil, mask=im_fore.pil)
+    im_back._repil(im_back.pil)
+    
+    return im_back
+
+    
+    
+    
     
 

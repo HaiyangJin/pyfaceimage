@@ -3,10 +3,51 @@ Utilities for pyfaceimage.
 """
 
 import numpy as np
+from PIL import Image, ImageDraw, ImageFilter
 from pyfaceimage.im import image
 
+def radial_gaussian(imsize=256, opaque=.5, kernal=10):
+    """Make a radial gaussian mask ('L') image (with some opaque region).
+
+    Parameters
+    ----------
+    imsize : int tuple, optional. 
+        Image size (width, height). {imsize} will be used as both width and height if only one value is given. Default to 256.
+    opaque : float, optional. 
+        Ratio of the regions to be "opaqued". Larger value means larger opaque region (from center to periphery). Default to .5.
+    kernal : int, optional
+        kernal for the gaussian filter, by default 10
+
+    Returns
+    -------
+    PIL.Image instance
+        A PIL.Image instance of the radial gaussian mask.
+    """    
+    
+    # make circle if imsize is not tuple
+    if type(imsize) is not tuple or len(imsize) == 1:
+        imsize = (imsize, imsize) # a and b in ellipse formula
+        
+    # set the opaque area (roughly)
+    if type(opaque) is not tuple or len(opaque) == 1:
+        opaque = (opaque, opaque)
+    if not isinstance(opaque, int):
+        opaque = (int(opaque[0] * imsize[0]), int(opaque[1] * imsize[1]))
+    
+    # make a 'L' mask in PIL
+    mask_im = Image.new('L', imsize, 0)
+    draw = ImageDraw.Draw(mask_im)
+    centeroval = (int(imsize[0]/2-opaque[0]/2), int(imsize[1]/2-opaque[0]/2),
+                  int(imsize[0]/2+opaque[0]/2), int(imsize[1]/2+opaque[0]/2))
+    draw.ellipse(centeroval, fill=255)
+    # apply gaussian blur
+    mask_im_blur = mask_im.filter(ImageFilter.GaussianBlur(kernal))
+    
+    return mask_im_blur
+
+
 def radial_gradient(imsize=256, opaque=.5, power=2):
-    """Make a radial gradient RGBA image (with some opaque region).
+    """Make a radial gradient RGBA image (with some opaque region). [There are some issues in the generated images (a ring appears). Please use radial_gaussian() instead.]
 
     Parameters
     ----------
@@ -68,7 +109,7 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
     tmpmin = np.min(gradients)
     assert tmpmin==-d0**power, 'Something unknown went wrong.'
     # update the alpha channel as gradient transparent
-    im_mat[:,:,3] = np.clip((gradients - tmpmin) * 254 / (tmpmax - tmpmin), 0, 254).astype(np.uint8)
+    im_mat[:,:,3] = np.clip((gradients - tmpmin) * 254 / (tmpmax - tmpmin), 0, 255).astype(np.uint8)
     
     # save it to an image instance
     im = image('')
@@ -76,3 +117,6 @@ def radial_gradient(imsize=256, opaque=.5, power=2):
     
     return im, im_mat
 
+
+    
+    

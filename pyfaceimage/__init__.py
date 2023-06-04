@@ -4,11 +4,13 @@ Tools for dealing with images in dictionary.
 
 from .im import (image)
 from .multim import (mkcf)
-from .utilities import (radial_gradient)
+from .utilities import (radial_gaussian)
+from .exps import (mkcf_prf)
 
 __all__ = ['image', 
            'mkcf',
-           'radial_gradient']
+           'radial_gaussian',
+           'mkcf_prf']
 
 import os, copy, random, glob, warnings
 from itertools import permutations, product

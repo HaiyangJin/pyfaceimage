@@ -31,10 +31,23 @@ class image:
         """Update information from the filename.
         """
         self.fname = os.path.basename(self.filename)
-        self.fnonly = os.path.splitext(self.fname)[0]
-        self.ext = os.path.splitext(self.fname)[1]
+        self.fnonly = ".".join(os.path.splitext(self.fname)[0:-1])
+        self.ext = os.path.splitext(self.fname)[-1]
         self.dirname = os.path.dirname(self.filename)
         self.isfile = os.path.isfile(self.filename)
+        
+    def updateext(self, ext):
+        """Update the filename information.
+        
+        Parameters
+        ----------
+        ext : str
+            the new extension.
+        """
+        if ext[0] != '.':
+            ext = '.'+ext
+        self.filename = self.dirname + os.sep + self.fnonly + ext
+        self._updatefromfilename()
         
     def read(self):
         """Read the image via PIL.

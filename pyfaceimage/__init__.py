@@ -79,7 +79,8 @@ def _dir(path, imwc, read):
     """
     
     # list all files in the path
-    imdict = {os.path.basename(f).split('.')[0]:image(f, read) 
+    ".".join(os.path.basename("cau.jpg").split('.')[0:-1])
+    imdict = {".".join(os.path.basename(f).split('.')[0:-1]):image(f, read) 
               for f in glob.glob(os.path.join(path,imwc))}
     print(f'Found {len(imdict)} files in {path}...')
     
@@ -456,6 +457,16 @@ def save(imdict, **kwargs):
         keyword arguments for matplotlib.pyplot.imsave(), by default {}
     """
     [v.save(**kwargs) for v in imdict.values()]
+    
+def updateext(imdict, **kwargs):
+    """Update the filename information.
+    
+    Parameters
+    ----------
+    ext : str
+        the new extension.
+    """
+    [v.updateext(**kwargs) for v in imdict.values()]
     
 def torgba(imdict, **kwargs):
     """Convert the image to RGBA.

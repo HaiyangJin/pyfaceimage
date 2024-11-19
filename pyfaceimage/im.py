@@ -260,6 +260,17 @@ class image:
         gray = ratio * 255
         
         return gray.astype(dtype=np.uint8)
+    
+    def rotate(self, angle=180):
+        """Rotate the image unclockwise.
+
+        Parameters
+        ----------
+        angle : float
+            the angle to rotate the image. Defaults to 180.
+        """
+        # rotate the image
+        self._repil(self.pil.rotate(angle))
         
     def adjust(self, lum=None, rms=None, mask=None):
         """Adjust the luminance and contrast of the image.

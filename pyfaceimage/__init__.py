@@ -466,6 +466,16 @@ def grayscale(imdict, **kwargs):
     """Convert the image to gray-scale.
     """
     [v.grayscale(**kwargs) for v in imdict.values()] 
+    
+def rotate(imdict, **kwargs):
+    """Rotate the image.
+    
+    Parameters
+    ----------
+    angle : float, optional
+        the angle to rotate the image. Defaults to 0.
+    """
+    [v.rotate(**kwargs) for v in imdict.values()]
 
 def adjust(imdict, **kwargs):
     """Adjust the luminance and contrast of the image.

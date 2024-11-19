@@ -165,7 +165,58 @@ def composite(im_back, im_fore):
     
     return im_back
 
+
+def concatenate(im1, im2, axis=0, sep="-", padval=0):
+    """Concatenate two images along the specified axis.
+
+    Parameters
+    ----------
+    im1 : im.image() instance
+        the first image.
+    im2 : im.image() instance
+        the second image.
+        
+    Keyword Arguments
+    -----------------
+    axis : int
+        the axis along which the images are concatenated. Defaults to 0.
+    sep : str
+        the separator between the two images. Defaults to "-".
+    padval : int
+        the value to pad the images. Defaults to 0.
+
+    Returns
+    -------
+    im.image() instance
+        the concatenated image.
+    """
     
+    im = im1.deepcopy()
+    
+    # pad the images if necessary
+    if axis==0:
+        if im.w>im2.w:
+            im2.pad(trgw=im.w, padval=padval)
+        elif im.w<im2.w:
+            im.pad(trgw=im2.w, padval=padval)
+    elif axis==1:
+        if im.h>im2.h:
+            im2.pad(trgh=im.h, padval=padval)
+        elif im.h<im2.h:
+            im.pad(trgh=im2.h, padval=padval)
+    
+    # concatenate the images
+    if axis==0:
+        im.pil = Image.fromarray(np.concatenate((im.pil, im2.pil), axis=0))
+    elif axis==1:
+        im.pil = Image.fromarray(np.concatenate((im.pil, im2.pil), axis=1))
+    im._repil(im.pil)
+    
+    # update the filename
+    newfilename = im.fnonly+sep+im2.fnonly
+    im._newfilename(newfname=newfilename, addfn=False)
+    
+    return (im, newfilename)
     
     
     

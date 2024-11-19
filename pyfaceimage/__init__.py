@@ -3,12 +3,13 @@ Tools for dealing with images in dictionary.
 """
 
 from .im import (image)
-from .multim import (mkcf)
+from .multim import (mkcf, concatenate)
 from .utilities import (radial_gaussian)
 from .exps import (mkcf_prf)
 
 __all__ = ['image', 
            'mkcf',
+           'concatenate',
            'radial_gaussian',
            'mkcf_prf']
 
@@ -276,6 +277,7 @@ def mkcfs(imdict, sep='/', **kwargs):
         the composite face stimuli as a im.image() instance.
     """
     
+    # make sure the dictionary is flatten
     if len(set([im.group for im in imdict.values()])) > 1 and bool(sep):
         imdict_nested = _nested(imdict, sep=sep)
         
@@ -330,6 +332,47 @@ def _mkcfs(imdict, **kwargs):
     
     return cfdict
 
+def concateims(imdict, **kwargs):
+    """Concatenate images in the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+    
+    Keyword Arguments
+    -----------------
+    axis : int, optional
+        the axis along which the images are concatenated. Defaults to 0.
+    sep : str
+        the separator between the two images. Defaults to "-".
+    padvalue : int, optional
+        padding value. Defaults to 0 (show as transparent if alpha channel exists).
+    kwargs : dict, optional
+        keyword arguments for numpy.concatenate(), by default {}
+    
+    Returns
+    -------
+    im.image() instance
+        the concatenated image.
+    """
+    
+    # make sure the dictionary is flatten
+    if not _isflatten(imdict):
+        imdict = _flatten(imdict)
+    
+    # check the number of im
+    nim = len(imdict)
+    assert nim>1, f'There should be more than one im in imdict... (Now {nim})'
+        
+    # generate all possible combinations of concatenated images
+    concatedict = {}
+    for (k1, k2) in permutations(sorted(imdict), 2):
+        tmpconcate, concate_fn = concatenate(imdict[k1], imdict[k2], **kwargs)
+        concatedict[concate_fn]=tmpconcate
+    
+    return concatedict
+
 def read(imdict):
     """read the images if read was False in dir()
     """
@@ -340,10 +383,12 @@ def save(imdict, **kwargs):
 
     Parameters
     ----------
-    extrafn : str, optional
-        strings to be added before the extension, by default ''
+    newfname : str, optional
+            strings to be added before the extension, by default ''
     newfolder : str, optional
-        folder name to replace the global directory or the last directory level, by default ''
+            folder name to replace the global directory or the last directory level, by default ''
+    addfn : bool, optional
+            whether to add the newfname to the the original fname (instead of replacing it), by default True
     kwargs : dict, optional
         keyword arguments for matplotlib.pyplot.imsave(), by default {}
     """

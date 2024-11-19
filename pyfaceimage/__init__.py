@@ -362,11 +362,11 @@ def concateims(imdict, pairstyle="perm", **kwargs):
     
     Keyword Arguments
     -----------------
-    axis : int, optional
-        the axis along which the images are concatenated. Defaults to 0.
+    axis : int
+        the axis along which the images are concatenated. Defaults to 1, i.e., horizontally.
     sep : str
         the separator between the two images. Defaults to "-".
-    padvalue : int, optional
+    padvalue : int
         padding value. Defaults to 0 (show as transparent if alpha channel exists).
     
     Returns
@@ -468,12 +468,12 @@ def grayscale(imdict, **kwargs):
     [v.grayscale(**kwargs) for v in imdict.values()] 
     
 def rotate(imdict, **kwargs):
-    """Rotate the image.
+    """Rotate the image unclockwise.
     
     Parameters
     ----------
     angle : float, optional
-        the angle to rotate the image. Defaults to 0.
+        the angle to rotate the image. Defaults to 180.
     """
     [v.rotate(**kwargs) for v in imdict.values()]
 

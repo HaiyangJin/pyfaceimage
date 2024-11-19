@@ -166,7 +166,7 @@ def composite(im_back, im_fore):
     return im_back
 
 
-def concatenate(im1, im2, axis=0, sep="-", padval=0):
+def concatenate(im1, im2, axis=1, sep="-", padval=0):
     """Concatenate two images along the specified axis.
 
     Parameters
@@ -179,7 +179,7 @@ def concatenate(im1, im2, axis=0, sep="-", padval=0):
     Keyword Arguments
     -----------------
     axis : int
-        the axis along which the images are concatenated. Defaults to 0.
+        the axis along which the images are concatenated. Defaults to 1, i.e. horizontally.
     sep : str
         the separator between the two images. Defaults to "-".
     padval : int

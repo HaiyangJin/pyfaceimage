@@ -295,8 +295,26 @@ def mkcfs(imdict, sep='/', **kwargs):
     
 def _mkcfs(imdict, **kwargs):
     """Please refer to mkcfs() for more details.
+    
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+        
+    Keyword Arguments
+    -----------------
+    misali : int, num
+        misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to [0,0.5].
+    showcue : bool
+        whether to display cue in the image. Defaults to False.
+    cueistop : bool
+        whether the top half is cued. Defaults to True.
+    pairstyle : str
+        the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself).
+    
+    Returns
     """
-    defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True}
+    defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True, 'pairstyle':'perm'}
     kwargs = {**defaultKwargs, **kwargs}
     
     # make sure the dictionary is flatten
@@ -395,21 +413,65 @@ def save(imdict, **kwargs):
     [v.save(**kwargs) for v in imdict.values()]
     
 def torgba(imdict, **kwargs):
+    """Convert the image to RGBA.
+    """
     [v.torgba(**kwargs) for v in imdict.values()]
     
 def grayscale(imdict, **kwargs):
+    """Convert the image to gray-scale.
+    """
     [v.grayscale(**kwargs) for v in imdict.values()] 
 
 def adjust(imdict, **kwargs):
+    """Adjust the luminance and contrast of the image.
+        
+    Parameters
+    ----------
+    lum : float, optional
+        the desired mean of the image. Defaults to None.
+    rms : float, optional
+        the desired standard deviation of the image. Defaults to None.
+    mask : np.array, optional
+        the mask for the image. Defaults to None.
+    """
     [v.adjust(**kwargs) for v in imdict.values()]
     
 def cropoval(imdict, **kwargs):
+    """Crop the image with an oval shape.
+
+    Parameters
+    ----------
+    radius : tuple, optional
+        the radius of the oval. Defaults to (100,128).
+    bgcolor : tuple, optional
+        the background color. Defaults to None.
+    """
     [v.cropoval(**kwargs) for v in imdict.values()]
     
 def croprect(imdict, **kwargs):
+    """Crop the image with a rectangle box.
+
+    Parameters
+    ----------
+    box : tuple, optional
+        the box to crop the image. Defaults to None.
+    """
     [v.croprect(**kwargs) for v in imdict.values()]
 
 def resize(imdict, **kwargs):
+    """Resize the image.
+        
+    Kwargs
+    ----------
+    trgw: int, optional
+        the width of the target/desired stimuli.
+    trgh: int, optional
+        the height of the target/desired stimuli.
+    ratio: float, optional
+        the ratio to resize the image. Defaults to 0.
+    newfolder: str, optional
+        the folder to save the resized image. Defaults to None.
+    """
     [v.resize(**kwargs) for v in imdict.values()]
     
 def pad(imdict, **kwargs):
@@ -430,16 +492,59 @@ def pad(imdict, **kwargs):
         padding more to left if needed. Defaults to True.
     padalpha: int, optional
         the transparent color. Defaults to -1, i.e., not to force it to transparent.
+    extrafn: str, optional
+        the string to be added to the filename. Defaults to '_pad'.
     """
     [v.pad(**kwargs) for v in imdict.values()]
 
 def mkboxscr(imdict, **kwargs):
+    """Make box scrambled stimuli.
+        
+    Kwargs
+    ----------
+    nBoxW: int, optional
+        the number of boxes in width. Defaults to 10.
+    nBoxH: int, optional
+        the number of boxes in height. Defaults to 16.
+    pBoxW: int, optional
+        the width of a box. Defaults to 0.
+    pBoxH: int, optional
+        the height of a box. Defaults to 0.
+    pad: bool, optional
+        whether to add padding to the image. Defaults to False.
+    padcolor: int, optional
+        the padding color. Defaults to 0.
+    padalpha: int, optional
+        the padding alpha. Defaults to -1.
+    """
     [v.mkboxscr(**kwargs) for v in imdict.values()]
     
 def mkphasescr(imdict, **kwargs):
+    """Make phase scrambled stimuli.
+        
+    Kwargs
+    ----------
+    rms: float, optional
+        the desired RMS of the image. Defaults to 0.3.
+    """
     [v.mkphasescr(**kwargs) for v in imdict.values()]
     
 def sffilter(imdict, **kwargs):
+    """Apply spatial frequency filter to the image.
+        
+    Kwargs
+    ----------
+    rms: float, optional
+        the desired RMS of the image. Defaults to 0.3.
+    maxvalue: int, optional
+        the maximum value of the image. Defaults to 255.
+    sffilter: str, optional
+        the spatial frequency filter. Defaults to 'low'.
+    cutoff: float, optional
+        the cutoff frequency. Defaults to 0.05.
+    n: int, optional
+        the order of the filter. Defaults to 10.
+    """
     [v.sffilter(**kwargs) for v in imdict.values()]
     
     

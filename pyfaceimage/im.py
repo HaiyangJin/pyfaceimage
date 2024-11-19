@@ -192,6 +192,8 @@ class image:
             self.h, self.w, self.nchan = self.dims
         
     def torgba(self):
+        """Convert the image to RGBA.
+        """
         # convert pil to RGBA and save in .mat
         if len(self.mat.shape)==2: # Gray
             self.mat = self.mat[..., np.newaxis]
@@ -217,10 +219,26 @@ class image:
         self.remat(self.mat)
         
     def grayscale(self):
+        """Convert the image to gray-scale.
+        """
         # convert image to gray-scale
         self._repil(ImageOps.grayscale(self.pil))
         
     def _logit(self, ratio=None, correction=0.00001):
+        """Convert the ratio to log odds.
+
+        Parameters
+        ----------
+        ratio : np.array, optional
+            the ratio of the image. Defaults to None.
+        correction : float, optional
+            the correction value. Defaults to 0.00001.
+
+        Returns
+        -------
+        np.array
+            the log odds of the image.
+        """
         
         if ratio is None:
             self.grayscale()
@@ -244,6 +262,17 @@ class image:
         return gray.astype(dtype=np.uint8)
         
     def adjust(self, lum=None, rms=None, mask=None):
+        """Adjust the luminance and contrast of the image.
+        
+        Parameters
+        ----------
+        lum : float, optional
+            the desired mean of the image. Defaults to None.
+        rms : float, optional
+            the desired standard deviation of the image. Defaults to None.
+        mask : np.array, optional
+            the mask for the image. Defaults to None.
+        """
         # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
         
         # default for mask
@@ -290,6 +319,15 @@ class image:
 
         
     def cropoval(self, radius=(100,128), bgcolor=None):
+        """Crop the image with an oval shape.
+        
+        Parameters
+        ----------
+        radius : tuple, optional
+            the radius of the oval. Defaults to (100,128).
+        bgcolor : tuple, optional
+            the background color. Defaults to None.
+        """
         
         # for instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent
         
@@ -319,10 +357,30 @@ class image:
         self.croprect(bbox)
         
     def croprect(self, box=None):
+        """Crop the image with a rectangle box.
+
+        Parameters
+        ----------
+        box : tuple, optional
+            the box to crop the image. Defaults to None.
+        """
         # crop the image with a rectangle box
         self._repil(self.pil.crop(box))
     
     def resize(self, **kwargs):
+        """Resize the image.
+        
+        Kwargs
+        ----------
+        trgw: int, optional
+            the width of the target/desired stimuli.
+        trgh: int, optional
+            the height of the target/desired stimuli.
+        ratio: float, optional
+            the ratio to resize the image. Defaults to 0.
+        newfolder: str, optional
+            the folder to save the resized image. Defaults to None.
+        """
         # resize the image
         defaultKwargs = {'trgw': None, 'trgh': None, 'ratio':0, 'newfolder':None}
         kwargs = {**defaultKwargs, **kwargs}
@@ -371,9 +429,11 @@ class image:
             padding more to left if needed. Defaults to True.
         padalpha: int, optional
             the transparent color. Defaults to -1, i.e., not to force it to transparent.
+        extrafn: str, optional
+            the string to be added to the filename. Defaults to '_pad'.
         """
         
-        defaultKwargs = {'trgw':self.w, 'trgh':self.h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1}
+        defaultKwargs = {'trgw':self.w, 'trgh':self.h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1, 'extrafn':'_pad'}
         kwargs = {**defaultKwargs, **kwargs}
         
         trgw,trgh = kwargs['trgw'], kwargs['trgh']
@@ -420,10 +480,28 @@ class image:
             padmat = padmat[:,:,0]
         
         self.remat(padmat)
-        self._newfilename(newfname='_pad')
+        if kwargs['extrafn']!='':
+            self._newfilename(newfname=kwargs['extrafn'])
         
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
+        
+        Kwargs
+        ----------
+        nBoxW: int, optional
+            the number of boxes in width. Defaults to 10.
+        nBoxH: int, optional
+            the number of boxes in height. Defaults to 16.
+        pBoxW: int, optional
+            the width of a box. Defaults to 0.
+        pBoxH: int, optional
+            the height of a box. Defaults to 0.
+        pad: bool, optional
+            whether to add padding to the image. Defaults to False.
+        padcolor: int, optional
+            the padding color. Defaults to 0.
+        padalpha: int, optional
+            the padding alpha. Defaults to -1.
         """
         defaultKwargs = {'nBoxW':10, 'nBoxH':16, 
                      'pBoxW':0, 'pBoxH':0, 
@@ -487,6 +565,13 @@ class image:
         self._newfilename(newfname='_bscr')
         
     def mkphasescr(self, **kwargs):
+        """Make phase scrambled stimuli.
+        
+        Kwargs
+        ----------
+        rms: float, optional
+            the desired RMS of the image. Defaults to 0.3.
+        """
         defaultKwargs = {'rms':0.3}
         kwargs = {**defaultKwargs, **kwargs}
         
@@ -518,6 +603,21 @@ class image:
         self._newfilename(newfname='_pscr')
     
     def sffilter(self, **kwargs):
+        """Apply spatial frequency filter to the image.
+        
+        Kwargs
+        ----------
+        rms: float, optional
+            the desired RMS of the image. Defaults to 0.3.
+        maxvalue: int, optional
+            the maximum value of the image. Defaults to 255.
+        sffilter: str, optional
+            the spatial frequency filter. Defaults to 'low'.
+        cutoff: float, optional
+            the cutoff frequency. Defaults to 0.05.
+        n: int, optional
+            the order of the filter. Defaults to 10.
+        """
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
         import psychopy.filters
         
@@ -569,6 +669,20 @@ class image:
         self._newfilename(newfname='_'+kwargs['sffilter']+'_filtered')
     
     def _stdim(self, mat, rms=0.3):
+        """Standardize the image.
+
+        Parameters
+        ----------
+        mat : np.array
+            the image matrix.
+        rms : float, optional
+            the desired RMS of the image. Defaults to 0.3.
+
+        Returns
+        -------
+        np.array
+            the standardized image matrix.
+        """
         # standardize the image (the range of output should be -1,1)
         # make the standard deviation to be the desired RMS
         mat = (mat - np.mean(mat))/np.std(mat) * rms

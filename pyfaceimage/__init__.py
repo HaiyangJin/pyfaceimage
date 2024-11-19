@@ -14,7 +14,7 @@ __all__ = ['image',
            'mkcf_prf']
 
 import os, copy, random, glob, warnings
-from itertools import permutations, product
+from itertools import permutations, combinations_with_replacement, combinations, product
 
 def dir(path=os.getcwd(), imwc='*.png', read=True, sep='/'):
     """List all images in the path and subdirs. Please make sure none of the subdirectories is named as 'path'.
@@ -340,7 +340,7 @@ def _mkcfs(imdict, **kwargs):
     
     # generate all possible combinations of composite face images
     cfdict = {}
-    for (k1, k2) in permutations(sorted(imdict), 2):
+    for (k1, k2) in _mkpair(imdict, pairstyle=kwargs['pairstyle']):
          
         for (mis, cue) in product(misali, cueistop): # both aligned and misaligned
             kwargs['misali']=mis
@@ -350,13 +350,15 @@ def _mkcfs(imdict, **kwargs):
     
     return cfdict
 
-def concateims(imdict, **kwargs):
+def concateims(imdict, pairstyle="perm", **kwargs):
     """Concatenate images in the dictionary.
 
     Parameters
     ----------
     imdict : dict
         A dictionary of images.
+    pairstyle : str
+        the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself).
     
     Keyword Arguments
     -----------------
@@ -366,8 +368,6 @@ def concateims(imdict, **kwargs):
         the separator between the two images. Defaults to "-".
     padvalue : int, optional
         padding value. Defaults to 0 (show as transparent if alpha channel exists).
-    kwargs : dict, optional
-        keyword arguments for numpy.concatenate(), by default {}
     
     Returns
     -------
@@ -382,14 +382,59 @@ def concateims(imdict, **kwargs):
     # check the number of im
     nim = len(imdict)
     assert nim>1, f'There should be more than one im in imdict... (Now {nim})'
-        
+    
     # generate all possible combinations of concatenated images
     concatedict = {}
-    for (k1, k2) in permutations(sorted(imdict), 2):
+    for (k1, k2) in _mkpair(imdict, pairstyle=pairstyle):
         tmpconcate, concate_fn = concatenate(imdict[k1], imdict[k2], **kwargs)
         concatedict[concate_fn]=tmpconcate
     
     return concatedict
+
+def _mkpair(imdict, pairstyle="perm"):
+    """Make all possible pairs of images in the dictionary (based on pairstyle).
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of images.
+    pairstyle : str, optional
+        the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself). Examples are as follows for a list (dictionary) of [1,2,3]:
+        - perm: all possible permutations of the images. [(1,2), (1,3), (2,1), (2,3), (3,1), (3,2)]
+        - comb: all possible combinations of the images. [(1,2), (1,3), (2,3)]
+        - comb_repl: all possible combinations of the images with replacement. [(1,1), (1,2), (1,3), (2,2), (2,3), (3,3)]
+        - prod: all possible products of the images. [(1,1), (1,2), (1,3), (2,1), (2,2), (2,3), (3,1), (3,2), (3,3)]
+        - itself: all possible pairs of the same image. [(1,1), (2,2), (3,3)]
+
+    Raises
+    ------
+    ValueError
+        if pairstyle is not supported.
+        
+    Returns
+    -------
+    generator
+        all possible pairs of images in the dictionary.
+    """
+    # make sure the dictionary is flatten
+    if not _isflatten(imdict):
+        imdict = _flatten(imdict)
+    
+    # generate image pairs
+    if pairstyle=="perm":
+        pairs = permutations(sorted(imdict), 2)
+    elif pairstyle=="comb_repl":
+        pairs = combinations_with_replacement(sorted(imdict), 2)
+    elif pairstyle=="comb":
+        pairs = combinations(sorted(imdict), 2)
+    elif pairstyle=="prod":
+        pairs = product(sorted(imdict), repeat=2)
+    elif pairstyle=="itself":
+        pairs= [(k,k) for k in sorted(imdict)]
+    else:
+        raise ValueError(f'pairstyle "{pairstyle}" is not supported...')
+    
+    return pairs
 
 def read(imdict):
     """read the images if read was False in dir()

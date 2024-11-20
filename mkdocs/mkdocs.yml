@@ -1,0 +1,26 @@
+site_name: Pyfaceimage
+site_description: Documentation for the Pyfaceimage Python package
+site_author: Haiyang Jin
+theme:
+  name: material  # Material design theme
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage Guide: usage.md
+  - API Reference: api.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: numpy
+          
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/haiyangjin/pyfaceimage

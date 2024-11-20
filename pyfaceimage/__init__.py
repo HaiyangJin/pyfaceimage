@@ -33,7 +33,7 @@ def dir(path=os.getcwd(), imwc='*.png', read=True, sep='/'):
     Returns
     -------
     dict
-        A dictionary of images in the path and subdirs.
+        A dictionary of image() instances in the path and subdirs.
     """
     
     # list all files in the path
@@ -169,7 +169,7 @@ def _isflatten(imdict):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
 
     Returns
     -------
@@ -187,7 +187,7 @@ def sample(imdict, n=1, valueonly=True):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
     n : int, optional
         number of images to be sampled, by default 1
     valueonly : bool, optional
@@ -225,7 +225,7 @@ def deepcopy(imdict):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
 
     Returns
     -------
@@ -238,15 +238,15 @@ def deepcopy(imdict):
 def mkcfs(imdict, sep='/', **kwargs):
     """Make composite faces for all possible combinations of images in the dictionary.
     
-    Arguments
-    ---------
+    Parameters
+    ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
     sep : str, optional
         a string to be used to concatnate the subdirectory and image name, which is used as the key for flattening the dictionary, by default '/'. If sep is None, the dictionary will not be flatten.
    
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     misali : int, num
         misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to 0.
     topis1 : bool
@@ -300,10 +300,10 @@ def _mkcfs(imdict, **kwargs):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
         
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     misali : int, num
         misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to [0,0.5].
     showcue : bool
@@ -357,12 +357,12 @@ def concateims(imdict, pairstyle="perm", **kwargs):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
     pairstyle : str
         the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself).
-    
-    Keyword Arguments
-    -----------------
+        
+    Other Parameters
+    ----------------
     axis : int
         the axis along which the images are concatenated. Defaults to 1, i.e., horizontally.
     sep : str
@@ -398,7 +398,7 @@ def _mkpair(imdict, pairstyle="perm"):
     Parameters
     ----------
     imdict : dict
-        A dictionary of images.
+        A dictionary of image() instances.
     pairstyle : str, optional
         the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself). Examples are as follows for a list (dictionary) of [1,2,3]:
         - perm: all possible permutations of the images. [(1,2), (1,3), (2,1), (2,3), (3,1), (3,2)]
@@ -439,22 +439,30 @@ def _mkpair(imdict, pairstyle="perm"):
 
 def read(imdict):
     """read the images if read was False in dir()
+    
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
     """
     [v.read() for v in imdict.values()]
 
 def save(imdict, **kwargs):
     """Save the image PIL.
-
+    
     Parameters
     ----------
-    newfname : str, optional
+    imdict : dict
+        A dictionary of image() instances.
+
+    Other Parameters
+    ----------------
+    newfname : str
             strings to be added before the extension, by default ''
-    newfolder : str, optional
+    newfolder : str
             folder name to replace the global directory or the last directory level, by default ''
-    addfn : bool, optional
+    addfn : bool
             whether to add the newfname to the the original fname (instead of replacing it), by default True
-    kwargs : dict, optional
-        keyword arguments for matplotlib.pyplot.imsave(), by default {}
     """
     [v.save(**kwargs) for v in imdict.values()]
     
@@ -463,6 +471,11 @@ def updateext(imdict, **kwargs):
     
     Parameters
     ----------
+    imdict : dict
+        A dictionary of image() instances.
+    
+    Other Parameters
+    ----------------
     ext : str
         the new extension.
     """
@@ -470,11 +483,21 @@ def updateext(imdict, **kwargs):
     
 def torgba(imdict, **kwargs):
     """Convert the image to RGBA.
+    
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
     """
     [v.torgba(**kwargs) for v in imdict.values()]
     
 def grayscale(imdict, **kwargs):
     """Convert the image to gray-scale.
+    
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
     """
     [v.grayscale(**kwargs) for v in imdict.values()] 
     
@@ -483,59 +506,84 @@ def rotate(imdict, **kwargs):
     
     Parameters
     ----------
-    angle : float, optional
+    imdict : dict
+        A dictionary of image() instances.
+    
+    Other Parameters
+    -----------------
+    angle : float
         the angle to rotate the image. Defaults to 180.
     """
     [v.rotate(**kwargs) for v in imdict.values()]
 
 def adjust(imdict, **kwargs):
     """Adjust the luminance and contrast of the image.
-        
+    
     Parameters
     ----------
-    lum : float, optional
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    lum : float
         the desired mean of the image. Defaults to None.
-    rms : float, optional
+    rms : float
         the desired standard deviation of the image. Defaults to None.
-    mask : np.array, optional
+    mask : np.array
         the mask for the image. Defaults to None.
     """
     [v.adjust(**kwargs) for v in imdict.values()]
     
 def cropoval(imdict, **kwargs):
     """Crop the image with an oval shape.
-
+    
     Parameters
     ----------
-    radius : tuple, optional
+    imdict : dict
+        A dictionary of image() instances.
+
+    Other Parameters
+    ----------------
+    radius : tuple
         the radius of the oval. Defaults to (100,128).
-    bgcolor : tuple, optional
+    bgcolor : tuple
         the background color. Defaults to None.
     """
     [v.cropoval(**kwargs) for v in imdict.values()]
     
 def croprect(imdict, **kwargs):
     """Crop the image with a rectangle box.
-
+    
     Parameters
     ----------
-    box : tuple, optional
+    imdict : dict
+        A dictionary of image() instances.
+
+    Other Parameters
+    ----------------
+    box : tuple
         the box to crop the image. Defaults to None.
     """
     [v.croprect(**kwargs) for v in imdict.values()]
 
 def resize(imdict, **kwargs):
     """Resize the image.
-        
-    Kwargs
+    
+    Parameters
     ----------
-    trgw: int, optional
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    trgw : int
         the width of the target/desired stimuli.
-    trgh: int, optional
+    trgh : int
         the height of the target/desired stimuli.
-    ratio: float, optional
+    ratio : float
         the ratio to resize the image. Defaults to 0.
-    newfolder: str, optional
+    newfolder : str
         the folder to save the resized image. Defaults to None.
     """
     [v.resize(**kwargs) for v in imdict.values()]
@@ -544,74 +592,92 @@ def pad(imdict, **kwargs):
     """
     Add padding to the image/stimuli.
     
-    Kwargs
+    Parameters
     ----------
-    trgw: int, optional
+    imdict : dict
+        A dictionary of image() instances.
+    
+    Other Parameters
+    ----------------
+    trgw : int
         the width of the target/desired stimuli. 
-    trgh: int, optional
+    trgh : int
         the height of the target/desired stimuli.
-    padvalue: int, optional
+    padvalue : int
         padding value. Defaults to 0 (show as transparent if alpha channel exists).
-    top: bool, optional
+    top : bool
         padding more to top if needed. Defaults to True.
-    left: bool, optional 
+    left : bool
         padding more to left if needed. Defaults to True.
-    padalpha: int, optional
+    padalpha : int
         the transparent color. Defaults to -1, i.e., not to force it to transparent.
-    extrafn: str, optional
+    extrafn : str
         the string to be added to the filename. Defaults to '_pad'.
     """
     [v.pad(**kwargs) for v in imdict.values()]
 
 def mkboxscr(imdict, **kwargs):
     """Make box scrambled stimuli.
-        
-    Kwargs
+    
+    Parameters
     ----------
-    nBoxW: int, optional
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    nBoxW : int
         the number of boxes in width. Defaults to 10.
-    nBoxH: int, optional
+    nBoxH : int
         the number of boxes in height. Defaults to 16.
-    pBoxW: int, optional
+    pBoxW : int
         the width of a box. Defaults to 0.
-    pBoxH: int, optional
+    pBoxH : int
         the height of a box. Defaults to 0.
-    pad: bool, optional
+    pad : bool
         whether to add padding to the image. Defaults to False.
-    padcolor: int, optional
+    padcolor : int
         the padding color. Defaults to 0.
-    padalpha: int, optional
+    padalpha : int
         the padding alpha. Defaults to -1.
     """
     [v.mkboxscr(**kwargs) for v in imdict.values()]
     
 def mkphasescr(imdict, **kwargs):
     """Make phase scrambled stimuli.
-        
-    Kwargs
+    
+    Parameters
     ----------
-    rms: float, optional
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    rms : float
         the desired RMS of the image. Defaults to 0.3.
     """
     [v.mkphasescr(**kwargs) for v in imdict.values()]
     
 def sffilter(imdict, **kwargs):
     """Apply spatial frequency filter to the image.
-        
-    Kwargs
+    
+    Parameters
     ----------
-    rms: float, optional
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    rms : float
         the desired RMS of the image. Defaults to 0.3.
-    maxvalue: int, optional
+    maxvalue : int
         the maximum value of the image. Defaults to 255.
-    sffilter: str, optional
+    sffilter : str
         the spatial frequency filter. Defaults to 'low'.
-    cutoff: float, optional
+    cutoff : float
         the cutoff frequency. Defaults to 0.05.
-    n: int, optional
+    n : int
         the order of the filter. Defaults to 10.
     """
     [v.sffilter(**kwargs) for v in imdict.values()]
-    
-    
 

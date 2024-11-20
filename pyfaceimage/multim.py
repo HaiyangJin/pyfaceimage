@@ -17,8 +17,8 @@ def mkcf(im1, im2, **kwargs):
     im2 : im.image() instance
         another im.image() instane for creating composite faces.
         
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     misali : int, num
         misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to 0.
     topis1 : bool
@@ -176,8 +176,8 @@ def concatenate(im1, im2, axis=1, sep="-", padval=0):
     im2 : im.image() instance
         the second image.
         
-    Keyword Arguments
-    -----------------
+    Other Parameters
+    ----------------
     axis : int
         the axis along which the images are concatenated. Defaults to 1, i.e. horizontally.
     sep : str

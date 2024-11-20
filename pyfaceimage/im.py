@@ -9,15 +9,125 @@ import matplotlib.image as mpimg
 from itertools import product
 
 class image:
+    """A class to process a single image.
+    
+    Parameters
+    ----------
+    filename : str
+        path and image filename.  
+    read : bool, optional
+        Whether to read the image via PIL, by default False.
+            
+    Attributes
+    ----------
+    filename : str
+        path and image filename.
+    fname : str
+        the image filename.
+    fnonly : str
+        the image filename without extension.
+    ext : str
+        the image extension.
+    dirname : str
+        the image directory.
+    isfile : bool
+        whether the image file exists.
+    group : str
+        the group name of the image.
+    gpath : str
+        the global path of the image.
+    pil : PIL.Image
+        the PIL image.
+    mat : np.array
+        the image matrix.
+    dims : tuple
+        the image dimensions.
+    ndim : int
+        the number of dimensions.
+    h : int
+        the height of the image.
+    w : int
+        the width of the image.
+    nchan : int
+        the number of channels.
+    rgbmat : np.array
+        the RGB matrix.
+    amat : np.array
+        the alpha matrix.
+    
+    Methods
+    -------
+    updateext(ext)
+        Update the filename information.
+    read()
+        Read the image via PIL.
+    imshow()
+        Show the image matrix.
+    show()
+        Show the image PIL.
+    imsave(newfname='', newfolder='', addfn=True, **kwargs)
+        Save the image mat.
+    save(newfname='', newfolder='', addfn=True, **kwargs)
+        Save the image PIL.
+    deepcopy()
+        Make a deep copy of the instance.
+    remat(mat)
+        Re-assign value to .mat and update related information.
+    torgba()
+        Convert the image to RGBA.
+    grayscale()
+        Convert the image to gray-scale.
+    rotate(angle=180)
+        Rotate the image unclockwise.
+    adjust(lum=None, rms=None, mask=None)
+        Adjust the luminance and contrast of the image.
+    cropoval(radius=(100,128), bgcolor=None)
+        Crop the image with an oval shape.
+    croprect(box=None)
+        Crop the image with a rectangle box.
+    resize(**kwargs)
+        Resize the image.
+    pad(**kwargs)
+        Add padding to the image/stimuli.
+    mkboxscr(**kwargs)
+        Make box scrambled stimuli.
+    mkphasescr(**kwargs)
+        Make phase scrambled stimuli.
+    sffilter(**kwargs)
+        Apply spatial frequency filter to the image.
+    _logit(ratio=None, correction=0.00001)
+        Convert the ratio to log odds.
+    _sigmoid(logodds, correction=0.00001)
+        Convert the log odds to the ratio.
+    _repil(pil)
+        Update the image PIL.
+    _updatefrommat()
+        Update information from the image matrix.
+    _newfilename(newfname='', newfolder='', addfn=True)
+        Update the filename with newfname and newfolder.
+    _updatefromfilename()
+        Update information from the filename.
+    _setgroup(gname='')
+        Set the group name of the image.
+    _setgpath(gpath='')
+        Set the global path of the image.
+    _stdim(mat, rms=0.3)
+        Standardize the image.
+    """
     def __init__(self, filename, read=False):
         """Create an image instance.
 
         Parameters
         ----------
         filename : str
-            path and image filename.
+            path and image filename.  
         read : bool, optional
-            Whether to read the image via PIL, by default False
+            Whether to read the image via PIL, by default False.
+            
+        Raises
+        ------
+        AssertionError
+            If the file does not exist.
         """
         # make sure the file exists 
         assert os.path.isfile(filename) | (not bool(filename)), f'Cannot find {filename}...'
@@ -394,15 +504,15 @@ class image:
     def resize(self, **kwargs):
         """Resize the image.
         
-        Kwargs
-        ----------
-        trgw: int, optional
+        Other Parameters
+        ----------------
+        trgw : int
             the width of the target/desired stimuli.
-        trgh: int, optional
+        trgh : int
             the height of the target/desired stimuli.
-        ratio: float, optional
+        ratio : float
             the ratio to resize the image. Defaults to 0.
-        newfolder: str, optional
+        newfolder : str
             the folder to save the resized image. Defaults to None.
         """
         # resize the image
@@ -439,21 +549,21 @@ class image:
         """
         Add padding to the image/stimuli.
         
-        Kwargs
-        ----------
-        trgw: int, optional
+        Other Parameters
+        ----------------
+        trgw : int
             the width of the target/desired stimuli. 
-        trgh: int, optional
+        trgh : int
             the height of the target/desired stimuli.
-        padvalue: int, optional
+        padvalue : int
             padding value. Defaults to 0 (show as transparent if alpha channel exists).
-        top: bool, optional
+        top : bool
             padding more to top if needed. Defaults to True.
-        left: bool, optional 
+        left : bool 
             padding more to left if needed. Defaults to True.
-        padalpha: int, optional
+        padalpha : int
             the transparent color. Defaults to -1, i.e., not to force it to transparent.
-        extrafn: str, optional
+        extrafn : str
             the string to be added to the filename. Defaults to '_pad'.
         """
         
@@ -510,21 +620,21 @@ class image:
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
         
-        Kwargs
-        ----------
-        nBoxW: int, optional
+        Other Parameters
+        ----------------
+        nBoxW : int
             the number of boxes in width. Defaults to 10.
-        nBoxH: int, optional
+        nBoxH : int
             the number of boxes in height. Defaults to 16.
-        pBoxW: int, optional
+        pBoxW : int
             the width of a box. Defaults to 0.
-        pBoxH: int, optional
+        pBoxH : int
             the height of a box. Defaults to 0.
-        pad: bool, optional
+        pad : bool
             whether to add padding to the image. Defaults to False.
-        padcolor: int, optional
+        padcolor : int
             the padding color. Defaults to 0.
-        padalpha: int, optional
+        padalpha : int
             the padding alpha. Defaults to -1.
         """
         defaultKwargs = {'nBoxW':10, 'nBoxH':16, 
@@ -591,9 +701,9 @@ class image:
     def mkphasescr(self, **kwargs):
         """Make phase scrambled stimuli.
         
-        Kwargs
-        ----------
-        rms: float, optional
+        Other Parameters
+        ----------------
+        rms : float
             the desired RMS of the image. Defaults to 0.3.
         """
         defaultKwargs = {'rms':0.3}
@@ -629,17 +739,17 @@ class image:
     def sffilter(self, **kwargs):
         """Apply spatial frequency filter to the image.
         
-        Kwargs
-        ----------
-        rms: float, optional
+        Other Parameters
+        ----------------
+        rms : float
             the desired RMS of the image. Defaults to 0.3.
-        maxvalue: int, optional
+        maxvalue : int
             the maximum value of the image. Defaults to 255.
-        sffilter: str, optional
+        sffilter : str
             the spatial frequency filter. Defaults to 'low'.
-        cutoff: float, optional
+        cutoff : float
             the cutoff frequency. Defaults to 0.05.
-        n: int, optional
+        n : int
             the order of the filter. Defaults to 10.
         """
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html

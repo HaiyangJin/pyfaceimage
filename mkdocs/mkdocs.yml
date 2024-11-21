@@ -3,12 +3,25 @@ site_description: Documentation for the Pyfaceimage Python package
 site_author: Haiyang Jin
 theme:
   name: material  # Material design theme
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    # - navigation.expand
+    # - toc.follow
+    # - toc.integrate
+
 
 nav:
   - Home: index.md
   - Installation: installation.md
   - Usage Guide: 
-    - Read images: readim.ipynb
+    - Section name:
+      - Read images: readim.ipynb
+  - API Reference: 
+    - all: api/api.md
+    - class: api/class.md
+    - function: api/function.md
 
 plugins:
   - search

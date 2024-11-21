@@ -7,8 +7,8 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Usage Guide: usage.md
-  - API Reference: api.md
+  - Usage Guide: 
+    - Read images: readim.ipynb
 
 plugins:
   - search
@@ -19,7 +19,7 @@ plugins:
           options:
             show_source: true
             docstring_style: numpy
-          
+  - mknotebooks
 extra:
   social:
     - icon: fontawesome/brands/github

@@ -7,6 +7,7 @@ theme:
     - navigation.tabs
     - navigation.sections
     - navigation.top
+    - content.code.copy
     # - navigation.expand
     # - toc.follow
     # - toc.integrate
@@ -32,7 +33,9 @@ plugins:
           options:
             show_source: true
             docstring_style: numpy
+            members_order: alphabetical
   - mknotebooks
+
 extra:
   social:
     - icon: fontawesome/brands/github

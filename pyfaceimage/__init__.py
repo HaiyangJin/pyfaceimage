@@ -234,6 +234,30 @@ def deepcopy(imdict):
     """
     return copy.deepcopy(imdict)
 
+def touch(path, touchfolder="touch"):
+    """Touch empty files for the directory.
+
+    Parameters
+    ----------
+    path : str or dict
+        path to be touched.
+        A dictionary of image() instances.
+    touchfolder : str, optional
+        the new folder name for saving the empty files.
+    """
+    # if path is not a dictionary, it will be treated as a path
+    if not isinstance(path, dict):
+        imdict = dir(path=path)
+    else:
+        imdict = path
+        
+    # make sure the dictionary is flatten
+    if not _isflatten(imdict):
+        imdict = _flatten(imdict)
+    
+    # touch the directory
+    [v.touch(touchfolder) for v in imdict.values()]
+            
 
 def mkcfs(imdict, sep='/', **kwargs):
     """Make composite faces for all possible combinations of images in the dictionary.

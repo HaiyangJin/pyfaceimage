@@ -7,6 +7,7 @@ from PIL import Image, ImageOps, ImageDraw
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
+from pathlib import Path
 
 class image:
     """A class to process a single image.
@@ -258,6 +259,28 @@ class image:
         self.isfile = os.path.isfile(self.filename)
         
         
+    def touch(self, touchfolder=''):
+        """Touch a new empty file.
+
+        Parameters
+        ----------
+        touchfolder : str, optional
+            folder name to replace the global directory or the last directory level, by default ''
+        """
+        # update the directory
+        self._newfilename(newfolder=touchfolder)
+        
+        if self.isfile:
+            # throw warnings if file exists
+            warnings.warn("The file named '%s' already exists..." % self.filename)
+        else:
+            # make dir if needed
+            if not os.path.isdir(self.dirname):
+                os.makedirs(self.dirname)
+            # touch the file
+            Path(self.filename).touch()
+        
+    
     def _newfilename(self, newfname='', newfolder='', addfn=True):
         """Update the filename with newfname and newfolder.
 

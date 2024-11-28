@@ -338,6 +338,9 @@ def _mkcfs(imdict, **kwargs):
         the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself).
     
     Returns
+    -------
+    A dictionary of im.image() instance
+        the composite face stimuli as a im.image() instance.
     """
     defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True, 'pairstyle':'perm'}
     kwargs = {**defaultKwargs, **kwargs}
@@ -375,7 +378,49 @@ def _mkcfs(imdict, **kwargs):
     
     return cfdict
 
-def concateims(imdict, pairstyle="perm", **kwargs):
+def concateims(imdict, pairstyle="perm", sep='/', **kwargs):
+    """Concatenate images in the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
+    pairstyle : str, optional
+        the style of the pairs. Defaults to "perm". Options are "perm" (`itertools.permutation`), "comb" (`itertools.combination`), "comb_repl" (`itertools.combinations_with_replacement`), "prod" (`itertools.product`) and "itself" (concatenate itself).
+    sep : str, optional
+        a string to be used to concatnate the subdirectory and image name, which is used as the key for flattening the dictionary, by default '/'. If sep is None, the dictionary will not be flatten.
+        
+    Other Parameters
+    ----------------
+    axis : int
+        the axis along which the images are concatenated. Defaults to 1, i.e., horizontally.
+    sep : str
+        the separator between the two images. Defaults to "-".
+    padvalue : int
+        padding value. Defaults to 0 (show as transparent if alpha channel exists).
+
+    Returns
+    -------
+    A dictionary of im.image() instance
+        the concatenated image.
+    """
+    # make sure the dictionary is flatten
+    if len(set([im.group for im in imdict.values()])) > 1 and bool(sep):
+        imdict_nested = _nested(imdict, sep=sep)
+        
+        concatedict_nested = {}
+        for k,v in imdict_nested.items():
+            concatedict_nested[k] = _concateims(v, pairstyle=pairstyle, **kwargs)
+        
+        concatedict = _flatten(concatedict_nested, sep=sep)
+            
+    else:
+        concatedict = _concateims(imdict, pairstyle=pairstyle, **kwargs)
+            
+    return concatedict
+
+
+def _concateims(imdict, pairstyle="perm", **kwargs):
     """Concatenate images in the dictionary.
 
     Parameters

@@ -570,6 +570,21 @@ def grayscale(imdict, **kwargs):
     """
     [v.grayscale(**kwargs) for v in imdict.values()] 
     
+def addbg(imdict, **kwargs):
+    """Add background to the image.
+    
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
+    
+    Other Parameters
+    ----------------
+    bgcolor : tuple
+        the background color. Defaults to (255,255,255).
+    """
+    [v.addbg(**kwargs) for v in imdict.values()]
+    
 def rotate(imdict, **kwargs):
     """Rotate the image unclockwise.
     

@@ -78,6 +78,8 @@ class image:
         Convert the image to RGBA.
     grayscale()
         Convert the image to gray-scale.
+    addbg(bgcolor=(255,255,255))
+        Add background to the RGBA image.
     rotate(angle=180)
         Rotate the image unclockwise.
     adjust(lum=None, rms=None, mask=None)
@@ -318,6 +320,13 @@ class image:
         return copy.deepcopy(self)
             
     def remat(self, mat):
+        """Re-assign value to .mat and update related information.
+
+        Parameters
+        ----------
+        mat : np.array
+            the new image matrix.
+        """
         # re-assign value to .mat and update related information
         self.mat = mat
         self.pil = Image.fromarray(mat)
@@ -363,12 +372,35 @@ class image:
         self.amat = amat
         self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
         self.remat(self.mat)
-        
+         
     def grayscale(self):
         """Convert the image to gray-scale.
         """
         # convert image to gray-scale
         self._repil(ImageOps.grayscale(self.pil))
+        
+    def addbg(self, bgcolor=(255,255,255)):
+        """Add background to the RGBA image.
+
+        Parameters
+        ----------
+        bgcolor : list, optional
+            the background color. Defaults to (255,255,255).
+        """
+        
+        if len(bgcolor)>4:
+            bgcolor = bgcolor[:4]
+                
+        # make sure the image is in RGBA
+        if self.ndim<4:
+            self.torgba()
+            
+        # make a new image with the same size and the background color
+        bg = Image.new('RGBA', (self.w, self.h), tuple(bgcolor))
+        # paste self to the background image
+        bg.paste(self.pil, (0,0), self.pil)
+        # apply pil
+        self._repil(bg)
         
     def _logit(self, ratio=None, correction=0.00001):
         """Convert the ratio to log odds.

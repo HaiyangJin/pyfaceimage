@@ -3,7 +3,7 @@
 Pyfaceimage is a Python package that processes (face) images.
 
 ## Features
-- Feature 1
+- Feature 
 - Feature 2
 - Feature 3
 

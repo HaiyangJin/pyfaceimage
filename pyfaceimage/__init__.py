@@ -4,16 +4,19 @@ Tools for dealing with images in dictionary.
 
 from .im import (image)
 from .multim import (mkcf, concatenate)
-from .utilities import (radial_gaussian)
-from .exps import (mkcf_prf)
+from .utilities import (exp_design_builder, radial_gaussian)
+from .exps import (mk_cf_design, mkcf_prf)
 
 __all__ = ['image', 
            'mkcf',
            'concatenate',
+           'exp_design_builder',
            'radial_gaussian',
+           'mk_cf_design',
            'mkcf_prf']
 
 import os, copy, random, glob, warnings
+import pandas as pd
 from itertools import permutations, combinations_with_replacement, combinations, product
 
 def dir(path=os.getcwd(), imwc='*.png', read=True, sep='/'):
@@ -377,6 +380,81 @@ def _mkcfs(imdict, **kwargs):
             cfdict[cf_fn]=tmpcf
     
     return cfdict
+
+
+def mk_cf_designs(imdict, **kwargs):
+    """Make composite face task design matrix for each face group in `imdict`.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
+        
+    Other Parameters
+    ----------------
+    isTopCued : list
+        whether the top half is cued. Defaults to `[1]`.
+    isCongruent : list
+        whether the top and bottom halves are congruent. Defaults to `[0, 1]`.
+    isAligned : list
+        whether the top and bottom halves are aligned. Defaults to `[0, 1]`.
+    isCuedSame : list
+        whether the cued half is the same as the target half. Defaults to `[0, 1]`.
+    studyIsAligned : int
+        whether the study faces are always aligned. Defaults to `1`.
+    faceselector : list
+        the face selector for the composite faces. Defaults to the default selector (`default_selector`).
+    cue_str : list
+        the cue strings. Defaults to `['bot', 'top']`.
+    con_str : list
+        the congruency strings. Defaults to `['inc', 'con']`.
+    ali_str : list
+        the alignment strings. Defaults to `['mis', 'ali']`.
+    ca_str : list
+        the correct answer strings. Defaults to `['dif', 'sam']`.
+    task : str
+        the task name. Defaults to `'CCF'`.
+    cf_sep : str
+        the separator within the composite face names. Defaults to `'_'`.
+    cfs_sep : str
+        the separator between the study and test faces. Defaults to `''`.
+    showlevels : bool
+        whether to show the levels of the independent variables. Defaults to `False`.
+
+    Returns
+    -------
+    pd.DataFrame
+        a pandas DataFrame containing the composite face task design matrix.
+    """
+    
+    defaultKwargs = {'is_rand': False,
+                     'showlevels': True}
+    kwargs = {**defaultKwargs, **kwargs}
+    
+    # make sure the dictionary is nested
+    if _isflatten(imdict):
+        imdict = _nested(imdict)
+
+    # make composite face list for each face group
+    cfdict = dict()
+    for k,v in imdict.items():
+        kwargs['cf_group'] = k
+        cfdict[k] = mk_cf_design(v, **kwargs)
+    
+    # concatenate the composite face list    
+    cf_designs = pd.concat(cfdict.values(), ignore_index=True)
+    
+    # randomize the design
+    if kwargs['is_rand']:
+        cf_designs = cf_designs.sample(frac=1).reset_index(drop=True)
+    
+    # add trial numbers
+    cf_designs['trial'] = [x+1 for x in range(len(cf_designs))]
+    columns = ['trial'] + [col for col in cf_designs.columns if col != 'trial']
+    cf_designs = cf_designs[columns]
+
+    return cf_designs
+
 
 def concateims(imdict, pairstyle="perm", sep='/', **kwargs):
     """Concatenate images in the dictionary.

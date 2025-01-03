@@ -2,9 +2,110 @@
 Utilities for pyfaceimage.
 """
 
+import itertools
+import pandas as pd
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 from pyfaceimage.im import image
+
+
+def exp_design_builder(exp_conditions, rand_block=None, sort_block=None, is_rand=True):
+    """Generate a full factorial design matrix based on the input conditions.
+
+    Parameters
+    ----------
+    exp_conditions : list
+        A list of tuples, each containing a condition name and a list of levels for that condition, e.g., `[("IV1", [1, 2, 3]), ("IV2", [1, 2, 3, 4])]`.
+    rand_block : str list, optional
+        A list of condition names to randomize by block. The latter columns/blocks will be randomized within the former columns/blocks. by default None
+    sort_block : str list, optional
+        A list of condition names to sort by block, by default None
+    is_rand : bool, optional
+        Whether to randomize the design matrix, by default True
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame containing the full factorial design matrix. Each row represents a trial (Usage: `design.iloc[trial_index]['IV1']`).
+    int
+        The number of trials in the design matrix.
+    int
+        The number of blocks in the design matrix.
+
+    Raises
+    ------
+    ValueError
+        `rand_block` and `sort_block` must be available in the condition names in `exp`_conditions`.
+    ValueError
+        `rand_block` and `sort_block` must not overlap.
+        
+    Examples
+    --------
+    >>> exp_conditions = [("IV1", [1, 2, 3]),
+                          ("IV2", [1, 2, 3, 4]),
+                          ("IV3", [1, 2, 3, 4, 5]),
+                          ("blockNumber", [1, 2])]
+    >>> rand_block = ["IV3", "IV2"]
+    >>> sort_block = ["blockNumber"]
+    >>> design, n_trials, n_blocks = exp_design_builder(exp_conditions, rand_block, sort_block)
+    >>> print(design)
+    >>> print(f"Total trials: {n_trials} \nTotal blocks: {n_blocks}")
+    """
+    # Validate input conditions
+    cond_names = [cond[0] for cond in exp_conditions]
+    levels_per_cond = [len(cond[1]) for cond in exp_conditions]
+
+    # Ensure rand_block and sort_block are lists of indices
+    def _process_block(block, var_name):
+        if isinstance(block, list):
+            block_indices = [cond_names.index(name) for name in block]
+        elif block is None:
+            block_indices = []
+        else:
+            raise ValueError(f"{var_name} must be a list of condition names or None.")
+        return block_indices
+
+    rand_block_indices = _process_block(rand_block, "rand_block")
+    sort_block_indices = _process_block(sort_block, "sort_block")
+
+    if set(rand_block_indices) & set(sort_block_indices):
+        raise ValueError("rand_block and sort_block must not overlap.")
+
+    # Generate full factorial design
+    design_matrix = np.array(list(itertools.product(*[range(1, levels + 1) for levels in levels_per_cond])))
+    # Randomize design if requested
+    if is_rand:
+        np.random.shuffle(design_matrix)
+    
+    # Randomize design by blocks (rand_block)
+    rand_block_indices = sort_block_indices + rand_block_indices
+    if rand_block_indices:
+        for bloidx in range(len(rand_block_indices),0,-1):
+            
+            thisidx = rand_block_indices[0:bloidx]
+            
+            # Identify unique blocks
+            tmp, block_indices = np.unique(design_matrix[:, thisidx], axis=0, return_inverse=True)
+
+            # Shuffle the block order
+            final_indices = np.argsort(np.random.permutation(np.unique(block_indices)))
+            design_matrix = design_matrix[np.concatenate([np.where(block_indices == i)[0] for i in final_indices])]    
+     
+    # Sort the design matrix by sort_block
+    if sort_block_indices:
+        design_matrix = design_matrix[np.lexsort([design_matrix[:, idx] for idx in reversed(sort_block_indices)])]
+
+    # Replace indices with actual levels
+    design = pd.DataFrame({
+        cond_names[i]: [exp_conditions[i][1][level - 1] for level in design_matrix[:, i]]
+        for i in range(len(exp_conditions))
+    })
+
+    # n_trials = len(design)
+    # n_blocks = np.prod([len(exp_conditions[idx][1]) for idx in rand_block_indices])
+
+    return design
+    
 
 def radial_gaussian(imsize=256, opaque=.5, kernal=10):
     """Make a radial gaussian mask ('L') image (with some opaque region).

@@ -55,9 +55,46 @@ class image:
         the RGB matrix.
     amat : np.array
         the alpha matrix.
+        
+    Properties
+    ----------
+    filename : str
+        Return the image filename.
+    fname : str
+        Return the image filename.
+    fnonly : str
+        Return the image filename without extension.
+    ext : str
+        Return the image extension.
+    dirname : str
+        Return the image directory.
+    isfile : bool
+        Return whether the image file exists.
+    dims : tuple
+        Return the image dimensions.
+    ndim : int
+        Return the number of dimensions.
+    h : int
+        Return the height of the image.
+    w : int
+        Return the width of the image.
+    nchan : int
+        Return the number of channels.
+    maxlum : float
+        Return the maximum luminance of the image.
+    minlum : float
+        Return the minimum luminance of the image.
+    meanlum : float
+        Return the mean luminance of the image.
+    rms : float
+        Return the RMS of the image.
+    luminfo : None
+        Print the luminance information of the image.
     
     Methods
     -------
+    update_fninfor()
+        Update the image filename related information.
     updateext(ext)
         Update the filename information.
     read()
@@ -108,8 +145,6 @@ class image:
         Update information from the image matrix.
     _newfilename(newfname='', newfolder='', addfn=True)
         Update the filename with newfname and newfolder.
-    _updatefromfilename()
-        Update information from the filename.
     _setgroup(gname='')
         Set the group name of the image.
     _setgpath(gpath='')
@@ -133,22 +168,102 @@ class image:
             If the file does not exist.
         """
         # make sure the file exists 
-        assert os.path.isfile(filename) | (not bool(filename)), f'Cannot find {filename}...'
-        self.filename = filename
-        self._updatefromfilename() # update filename information
+        self._filename = filename
+        self.update_fninfo(filename, newfn=False) 
         self._setgroup() 
         self._setgpath()
         if read: self.read()
-        
-    def _updatefromfilename(self):
-        """Update information from the filename.
+    
+    @property
+    def filename(self):
+        """Return the image filename.
+
+        Returns
+        -------
+        str
+            the image filename.
         """
-        self.fname = os.path.basename(self.filename)
-        self.fnonly = ".".join(os.path.splitext(self.fname)[0:-1])
-        self.ext = os.path.splitext(self.fname)[-1]
-        self.dirname = os.path.dirname(self.filename)
-        self.isfile = os.path.isfile(self.filename)
+        return self._filename
+    
+    def update_fninfo(self, filename, newfn=True):
+        """Set the image filename.
+
+        Parameters
+        ----------
+        filename : str
+            path and image filename.
+        newfn : bool, optional
+            whether `filename` is a new file name, by default True. So it will not check whether the file exists.
+        """
+        if newfn & os.path.isfile(filename):
+            # throw warning if filename is newly created and exists
+            warnings.warn(f"The file named '{filename}' already exists...")
+        elif not newfn:
+            # throw error if filename is not new and does not exist
+            assert os.path.isfile(filename) | (not bool(filename)), f'Cannot find {filename}...'
+            
+        self._filename = filename
+        self._fname = os.path.basename(filename)
+        self._fnonly = ".".join(os.path.splitext(self._fname)[0:-1])
+        self._ext = os.path.splitext(self._fname)[-1]
+        self._dirname = os.path.dirname(filename)
+        self._isfile = os.path.isfile(filename)
         
+    @property
+    def fname(self):
+        """Return the image filename.
+
+        Returns
+        -------
+        str
+            the image filename.
+        """
+        return self._fname
+    
+    @property
+    def fnonly(self):
+        """Return the image filename without extension.
+
+        Returns
+        -------
+        str
+            the image filename without extension.
+        """
+        return self._fnonly
+    
+    @property
+    def ext(self):
+        """Return the image extension.
+
+        Returns
+        -------
+        str
+            the image extension.
+        """
+        return self._ext
+    
+    @property
+    def dirname(self):
+        """Return the image directory.
+
+        Returns
+        -------
+        str
+            the image directory.
+        """
+        return self._dirname
+    
+    @property
+    def isfile(self):
+        """Return whether the image file exists.
+
+        Returns
+        -------
+        bool
+            whether the image file exists.
+        """
+        return self._isfile
+    
     def updateext(self, ext):
         """Update the filename information.
         
@@ -159,8 +274,7 @@ class image:
         """
         if ext[0] != '.':
             ext = '.'+ext
-        self.filename = self.dirname + os.sep + self.fnonly + ext
-        self._updatefromfilename()
+        self.update_fninfo(self._dirname + os.sep + self._fnonly + ext)
         
     def read(self):
         """Read the image via PIL.
@@ -225,14 +339,14 @@ class image:
         # make dir(s)
         if not os.path.isdir(os.path.dirname(self.filename)):
             os.makedirs(os.path.dirname(self.filename))
-        if self.nchan==1:
+        if self._nchan==1:
             outmat = self.mat[:,:,0]
         else:
             outmat = self.mat
         
         # use matplotlib.pyplot.imsave() to save .mat
         mpimg.imsave(self.filename,outmat.copy(order='C'),**kwargs)
-        self.isfile = os.path.isfile(self.filename)
+        self._isfile = os.path.isfile(self.filename)
         
         
     def save(self, newfname='', newfolder='', addfn=True, **kwargs):
@@ -258,7 +372,7 @@ class image:
         
         # use PIL.Image.save() to save .pil    
         self.pil.save(self.filename, format=None, **kwargs)
-        self.isfile = os.path.isfile(self.filename)
+        self._isfile = os.path.isfile(self.filename)
         
         
     def touch(self, touchfolder=''):
@@ -277,8 +391,8 @@ class image:
             warnings.warn("The file named '%s' already exists..." % self.filename)
         else:
             # make dir if needed
-            if not os.path.isdir(self.dirname):
-                os.makedirs(self.dirname)
+            if not os.path.isdir(self._dirname):
+                os.makedirs(self._dirname)
             # touch the file
             Path(self.filename).touch()
         
@@ -296,23 +410,19 @@ class image:
             whether to add the newfname to the the original fname (instead of replacing it), by default True
         """
         # apply newfname to the old one
-        oldfname = os.path.splitext(self.fname)[0] if addfn else ''
-        fname = oldfname+newfname+os.path.splitext(self.fname)[1]
+        oldfname = os.path.splitext(self._fname)[0] if addfn else ''
+        fname = oldfname+newfname+os.path.splitext(self._fname)[1]
         
         # replace the path folder with newfolder
         if bool(self.gpath):
             # rename the global path and filename
             foldername = newfolder if bool(newfolder) else os.path.basename(self.gpath) # apply newfolder to the old one if needed
             group = self.group if self.group != 'path' else ''
-            self.filename = os.path.join(os.path.dirname(self.gpath), foldername, group, fname)
+            self.update_fninfo(os.path.join(os.path.dirname(self.gpath), foldername, group, fname))
             self.gpath = os.path.join(os.path.dirname(self.gpath), foldername)
         else:
-            foldername = newfolder if bool(newfolder) else os.path.basename(self.dirname) # apply newfolder to the old one if needed
-            self.filename = os.path.join(os.path.dirname(self.filename), foldername, fname)
-        
-        self._updatefromfilename()
-        if self.isfile:
-            warnings.warn("The file named '%s' already exists..." % {self.filename})
+            foldername = newfolder if bool(newfolder) else os.path.basename(self._dirname) # apply newfolder to the old one if needed
+            self.update_fninfo(os.path.join(os.path.dirname(self.filename), foldername, fname))
         
     def deepcopy(self):
         """make a deep copy of the instance
@@ -338,14 +448,120 @@ class image:
         self._updatefrommat()
             
     def _updatefrommat(self):
-        self.dims = self.mat.shape
-        self.ndim = len(self.dims)
-        if self.ndim==2:
-            self.h, self.w = self.dims
-            self.nchan = 0
-        elif self.ndim==3:
-            self.h, self.w, self.nchan = self.dims
-        
+        self._dims = self.mat.shape
+        self._ndim = len(self._dims)
+        self._h = self._dims[0]
+        self._w = self._dims[1]
+        self._nchan = self._dims[2] if self._ndim==3 else 0
+    
+    @property
+    def dims(self):
+        """Return the image dimensions.
+
+        Returns
+        -------
+        tuple
+            the image dimensions.
+        """
+        return self._dims
+    
+    @property
+    def ndim(self):
+        """Return the number of dimensions.
+
+        Returns
+        -------
+        int
+            the number of dimensions.
+        """
+        return self._ndim
+    
+    @property
+    def h(self):
+        """Return the height of the image.
+
+        Returns
+        -------
+        int
+            the height of the image.
+        """
+        return self._h
+    
+    @property
+    def w(self):
+        """Return the width of the image.
+
+        Returns
+        -------
+        int
+            the width of the image.
+        """
+        return self._w
+    
+    @property
+    def nchan(self):
+        """Return the number of channels.
+
+        Returns
+        -------
+        int
+            the number of channels.
+        """
+        return self._nchan
+    
+    @property
+    def maxlum(self):
+        """Return the maximum luminance of the image.
+
+        Returns
+        -------
+        float
+            the maximum luminance of the image.
+        """
+        return np.max(self.mat)
+    
+    @property
+    def minlum(self):
+        """Return the minimum luminance of the image.
+
+        Returns
+        -------
+        float
+            the minimum luminance of the image.
+        """
+        return np.min(self.mat)
+    
+    @property
+    def meanlum(self):
+        """Return the mean luminance of the image.
+
+        Returns
+        -------
+        float
+            the mean luminance of the image.
+        """
+        return np.mean(self.mat)
+    
+    @property
+    def rms(self):
+        """Return the RMS of the image.
+
+        Returns
+        -------
+        float
+            the RMS of the image.
+        """
+        return np.std(self.mat)
+    
+    @property
+    def luminfo(self):
+        """Print the luminance information of the image.
+        """
+        print(f'Maximum luminance: {self.maxlum}\n'+
+              f'Minimum luminance: {self.minlum}\n'+
+              f'Mean luminance: {self.meanlum}\n'+
+              f'RMS: {self.rms}')
+    
     def torgba(self):
         """Convert the image to RGBA.
         """
@@ -392,11 +608,11 @@ class image:
             bgcolor = bgcolor[:4]
                 
         # make sure the image is in RGBA
-        if self.ndim<4:
+        if self._ndim<4:
             self.torgba()
             
         # make a new image with the same size and the background color
-        bg = Image.new('RGBA', (self.w, self.h), tuple(bgcolor))
+        bg = Image.new('RGBA', (self._w, self._h), tuple(bgcolor))
         # paste self to the background image
         bg.paste(self.pil, (0,0), self.pil)
         # apply pil
@@ -465,11 +681,11 @@ class image:
         # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
         
         # default for mask
-        if self.nchan in (2,4):
+        if self._nchan in (2,4):
             alpha = self.mat[...,-1]
             isalpha = True
         else:
-            alpha = np.ones((self.h, self.w))*255
+            alpha = np.ones((self._h, self._w))*255
             isalpha = False
         if mask is None:
             mask = (alpha/255).astype(dtype=bool)
@@ -523,7 +739,7 @@ class image:
         # to make circle
         if type(radius) is not tuple:
             radius = (radius, radius) # a and b in ellipse formula
-        bbox = (self.w/2-radius[0], self.h/2-radius[1], self.w/2+radius[0], self.h/2+radius[1])
+        bbox = (self._w/2-radius[0], self._h/2-radius[1], self._w/2+radius[0], self._h/2+radius[1])
         
         # make a ellipse/oval mask
         pil_a = Image.new("L", self.pil.size, 0)
@@ -578,13 +794,13 @@ class image:
             (w, h) = (kwargs['trgw'], kwargs['trgh'])
         elif (kwargs['trgw'] is not None) & (kwargs['trgh'] is None):
             w = kwargs['trgw']
-            h = int(w*self.h/self.w)
+            h = int(w*self._h/self._w)
         elif (kwargs['trgw'] is None) & (kwargs['trgh'] is not None): 
             h = kwargs['trgh']
-            w = int(h*self.w/self.h)
+            w = int(h*self._w/self._h)
         elif kwargs['ratio']>0:
-            w = int(self.w*kwargs['ratio'])
-            h = int(self.h*kwargs['ratio'])
+            w = int(self._w*kwargs['ratio'])
+            h = int(self._h*kwargs['ratio'])
         else:
             raise 'Cannot determine the desired dimentions...'
         
@@ -622,18 +838,18 @@ class image:
             the string to be added to the filename. Defaults to '_pad'.
         """
         
-        defaultKwargs = {'trgw':self.w, 'trgh':self.h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1, 'extrafn':'_pad'}
+        defaultKwargs = {'trgw':self._w, 'trgh':self._h, 'padvalue': 0, 'top': True, 'left':True, 'padalpha':-1, 'extrafn':'_pad'}
         kwargs = {**defaultKwargs, **kwargs}
         
         trgw,trgh = kwargs['trgw'], kwargs['trgh']
         
-        assert(trgw>=self.w)
-        assert(trgh>=self.h)
+        assert(trgw>=self._w)
+        assert(trgh>=self._h)
         
-        x1 = int(np.ceil(trgw-self.w)/2)
-        x2 = trgw-self.w-x1
-        y1 = int(np.ceil(trgh-self.h)/2)
-        y2 = trgh-self.h-y1
+        x1 = int(np.ceil(trgw-self._w)/2)
+        x2 = trgw-self._w-x1
+        y1 = int(np.ceil(trgh-self._h)/2)
+        y2 = trgh-self._h-y1
         
         if kwargs['top']:
             htop, hbot = y1,y2
@@ -644,28 +860,28 @@ class image:
         else:
             wleft, wright = x2,x1
             
-        if self.nchan==0:
+        if self._nchan==0:
             nchan = 1
             mat = self.mat[..., np.newaxis] # add one more axis
         else:
-            nchan = self.nchan
+            nchan = self._nchan
             mat = self.mat
             
         if (kwargs['padalpha']>=0) & (nchan==1 | nchan==3):
-            mat = np.concatenate((mat, np.ones((self.h, self.w, 1), dtype=np.uint8)*kwargs['padalpha']),axis=2)
+            mat = np.concatenate((mat, np.ones((self._h, self._w, 1), dtype=np.uint8)*kwargs['padalpha']),axis=2)
             nchan = nchan + 1
         
         padmat = np.hstack((
             np.ones((trgh,wleft,nchan),dtype=np.uint8)*kwargs['padvalue'], 
             np.vstack((
-                np.ones((htop,self.w,nchan),dtype=np.uint8)*kwargs['padvalue'], 
+                np.ones((htop,self._w,nchan),dtype=np.uint8)*kwargs['padvalue'], 
                 mat,
-                np.ones((hbot,self.w,nchan),dtype=np.uint8)*kwargs['padvalue']
+                np.ones((hbot,self._w,nchan),dtype=np.uint8)*kwargs['padvalue']
             )),
             np.ones((trgh,wright,nchan),dtype=np.uint8)*kwargs['padvalue'], 
         ))
         
-        if (self.nchan==0) & (kwargs['padalpha']<0):
+        if (self._nchan==0) & (kwargs['padalpha']<0):
             padmat = padmat[:,:,0]
         
         self.remat(padmat)
@@ -699,8 +915,8 @@ class image:
             
         if (kwargs['pBoxW']!=0) & (kwargs['pBoxH']!=0):
         
-            _nBoxW = self.w/kwargs['pBoxW']
-            _nBoxH = self.h/kwargs['pBoxH']
+            _nBoxW = self._w/kwargs['pBoxW']
+            _nBoxH = self._h/kwargs['pBoxH']
             
             if not ((_nBoxW.is_integer()) & (_nBoxH.is_integer())):
                 assert kwargs['pad'], 'Please input valid pBoxW and pBoxH. Or set "pad" to True.'
@@ -711,14 +927,14 @@ class image:
             
                 self.pad(trgw=xnew, trgh=ynew, padvalue=kwargs['padcolor'], padalpha=kwargs['padalpha'])
 
-            kwargs['nBoxW'] = int(self.w/kwargs['pBoxW'])
-            kwargs['nBoxH'] = int(self.h/kwargs['pBoxH'])
+            kwargs['nBoxW'] = int(self._w/kwargs['pBoxW'])
+            kwargs['nBoxH'] = int(self._h/kwargs['pBoxH'])
                 
         elif (kwargs['nBoxW']!=0) & (kwargs['nBoxH']!=0):
             
             # x and y pixels for each box
-            _pBoxW = self.w/kwargs['nBoxW']
-            _pBoxH = self.h/kwargs['nBoxH']
+            _pBoxW = self._w/kwargs['nBoxW']
+            _pBoxH = self._h/kwargs['nBoxH']
     
             if not ((_pBoxW.is_integer()) & (_pBoxH.is_integer())):
                 assert kwargs['pad'], 'Please input valid nBoxW and nBoxH. Or set "pad" to True.'
@@ -728,16 +944,16 @@ class image:
                 newY = int(np.ceil(_pBoxH) * kwargs['nBoxH'])
                 self.pad(trgw=newW, trgh=newY, padvalue=kwargs['padcolor'], padalpha=kwargs['padalpha'])
 
-            kwargs['pBoxW'] = int(self.w/kwargs['nBoxW'])
-            kwargs['pBoxH'] = int(self.h/kwargs['nBoxH'])
+            kwargs['pBoxW'] = int(self._w/kwargs['nBoxW'])
+            kwargs['pBoxH'] = int(self._h/kwargs['nBoxH'])
         else:
             raise 'Please set valid nBoxW and nBoxH (or pBoxW and pBoxH).'
         
-        assert kwargs['nBoxW']*kwargs['pBoxW']==self.w, f"'nBoxW': {kwargs['nBoxW']}   'pBoxW': {kwargs['pBoxW']}    'self.w': {self.w}"
-        assert kwargs['nBoxH']*kwargs['pBoxH']==self.h, f"'nBoxH': {kwargs['nBoxH']}   'pBoxH': {kwargs['pBoxH']}    'self.h': {self.h}"
+        assert kwargs['nBoxW']*kwargs['pBoxW']==self._w, f"'nBoxW': {kwargs['nBoxW']}   'pBoxW': {kwargs['pBoxW']}    'self._w': {self._w}"
+        assert kwargs['nBoxH']*kwargs['pBoxH']==self._h, f"'nBoxH': {kwargs['nBoxH']}   'pBoxH': {kwargs['pBoxH']}    'self._h': {self._h}"
         
         # x and y for all boxes
-        xys = list(product(range(0,self.w,kwargs['pBoxW']), range(0,self.h,kwargs['pBoxH'])))
+        xys = list(product(range(0,self._w,kwargs['pBoxW']), range(0,self._h,kwargs['pBoxH'])))
         boxes = [self.mat[i[1]:(i[1]+kwargs['pBoxH']), i[0]:(i[0]+kwargs['pBoxW'])] for i in xys]
         # randomize the boxes
         bsboxes = np.random.permutation(boxes)
@@ -747,7 +963,7 @@ class image:
         bsmatm = np.asarray(bslist)
         if len(bsmatm.shape)==4:
             bsmatm = bsmatm[..., np.newaxis]
-        bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, self.h, self.w)
+        bsmat = np.moveaxis(bsmatm, [-1, 1], [0, -2]).reshape(-1, self._h, self._w)
         
         # save box-scrambled images (and information)
         self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
@@ -765,13 +981,13 @@ class image:
         kwargs = {**defaultKwargs, **kwargs}
         
         # make a random phase
-        randphase = np.angle(np.fft.fft2(np.random.rand(self.h, self.w)))
+        randphase = np.angle(np.fft.fft2(np.random.rand(self._h, self._w)))
 
-        if self.nchan==0:
+        if self._nchan==0:
             nchan = 1
             mat = self.mat[..., np.newaxis] # add one more axis
         else:
-            nchan = self.nchan
+            nchan = self._nchan
             mat = self.mat
             
         outmat = np.empty(mat.shape)

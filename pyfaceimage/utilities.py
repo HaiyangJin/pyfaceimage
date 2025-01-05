@@ -47,7 +47,7 @@ def exp_design_builder(exp_conditions, rand_block=None, sort_block=None, is_rand
                           ("blockNumber", [1, 2])]
     >>> rand_block = ["IV3", "IV2"]
     >>> sort_block = ["blockNumber"]
-    >>> design, n_trials, n_blocks = exp_design_builder(exp_conditions, rand_block, sort_block)
+    >>> design = exp_design_builder(exp_conditions, rand_block, sort_block)
     >>> print(design)
     >>> print(f"Total trials: {n_trials} \nTotal blocks: {n_blocks}")
     """

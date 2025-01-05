@@ -3,7 +3,7 @@ A class to process a single image.
 """
     
 import os, warnings, copy
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageOps, ImageDraw, ImageFilter, ImageChops
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
@@ -135,6 +135,10 @@ class image:
         Make phase scrambled stimuli.
     filter(**kwargs)
         Apply spatial frequency filter to the image.
+    psychopy_sffilter(**kwargs)
+        Apply spatial frequency filter to the image.
+    stdmat(rms=1, outrange=[0,255])
+        Standardize the image matrix.
     _logit(ratio=None, correction=0.00001)
         Convert the ratio to log odds.
     _sigmoid(logodds, correction=0.00001)
@@ -994,20 +998,58 @@ class image:
         outmat[:] = np.NaN
         
         for i in range(nchan):
-            img_freq = np.fft.fft2(self._stdim(mat[:,:,i], kwargs['rms']))
+            thismat = self.mat[:,:,i]
+            stdmat = (thismat - np.mean(thismat))/np.std(thismat)
+            img_freq = np.fft.fft2(stdmat)
             amp = np.abs(img_freq)
             phase = np.angle(img_freq) + randphase
             outimg = np.real(np.fft.ifft2(amp * np.exp(np.sqrt(-1+0j)*phase)))
-            stdimg1= self._stdim(outimg, kwargs['rms'])
-            outmat[:,:,i] = (stdimg1+1)/2*255
+            stdout= (outimg - np.mean(outimg))/np.std(outimg)
+            outmat[:,:,i] = (stdout - np.min(stdout)) * 255 / (np.max(stdout) - np.min(stdout))
             
-        if self.nchan==0:
+        if self._nchan==0:
             outmat = outmat[:,:,0]
         
         self.remat(np.uint8(outmat))
         self._newfilename(newfname='_pscr')
-    
-    def sffilter(self, **kwargs):
+        
+        
+    def filter(self, **kwargs):
+        
+        
+        
+        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'filter':'low',
+                         'cpi': 5,   # cycles per image (width) or cycles per degree if vapi>0
+                         'vapi': 1,  # visual angle per image
+                         'radius': 5, }
+        kwargs = {**defaultKwargs, **kwargs}
+        
+        self.grayscale()
+        # self.stdmat(kwargs['rms'])
+        
+        if kwargs['cpi'] > 0:
+            # cycles per image (width) OR cycles per degree (along the width)
+            radius = int(self._w / (2 * np.pi * kwargs['cpi'] * kwargs['vapi']))
+        else:
+            radius = kwargs['radius']
+            
+        # Apply low-pass filter
+        low_pass_image = self.pil.filter(ImageFilter.GaussianBlur(radius=radius))
+
+        # Create high-pass filter by subtracting low-pass image
+        high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
+        # Enhance the high-pass image (optional, to increase contrast)
+        high_pass_image = high_pass_image.point(lambda x: x * 2)  # Amplify high frequencies
+        
+        if kwargs['filter']=='low':
+            self._repil(low_pass_image)
+        elif kwargs['filter']=='high':
+            self._repil(high_pass_image)
+        
+        self.stdmat(kwargs['rms'])
+        self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
+            
+            
     def psychopy_sffilter(self, **kwargs):
         """Apply spatial frequency filter to the image.
         
@@ -1032,8 +1074,8 @@ class image:
         kwargs = {**defaultKwargs, **kwargs}
         
         self.grayscale()
-        stdmat = self._stdim(self.mat, kwargs['rms'])
-        img_freq = np.fft.fft2(stdmat)
+        self.stdmat(kwargs['rms'])
+        img_freq = np.fft.fft2(self.mat)
 
         # calculate amplitude spectrum
         # img_amp = np.fft.fftshift(np.abs(img_freq))
@@ -1050,14 +1092,14 @@ class image:
         if kwargs['filter']=='low':
             # for generating blury images
             fsfilt = psychopy.filters.butter2d_lp(
-                size=(self.w, self.h),
+                size=(self._w, self._h),
                 cutoff=kwargs['cutoff'],
                 n=kwargs['n']
             )
         elif kwargs['filter']=='high':      
              # for gernerating sharp images
             fsfilt = psychopy.filters.butter2d_hp(
-                size=(self.w, self.h),
+                size=(self._w, self._h),
                 cutoff=kwargs['cutoff'],
                 n=kwargs['n']
             )
@@ -1067,36 +1109,43 @@ class image:
         img_filt = np.fft.fftshift(img_freq) * fsfilt.transpose()
         # convert back to an image
         img_new = np.real(np.fft.ifft2(np.fft.ifftshift(img_filt)))
-        # standardize the image to [-1, 1]
-        img_new = self._stdim(img_new, kwargs['rms'])
-        # convert the range to [0, 255]
-        img_new = (img_new+1)/2*kwargs['maxvalue']
         self.remat(img_new)
+        # standardize the image 
+        img_new = self.stdim(kwargs['rms'])
         self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
     
-    def _stdim(self, mat, rms=0.3):
-        """Standardize the image.
+    
+    def stdmat(self, rms=1, outrange=[0,255]):
+        """Standardize the image with the desired Root-Mean-Square contrast or `outrange`.
+        
+        For the algorithm, see Appendix B in 
+        Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
 
         Parameters
         ----------
-        mat : np.array
-            the image matrix.
         rms : float, optional
-            the desired RMS of the image. Defaults to 0.3.
-
-        Returns
-        -------
-        np.array
-            the standardized image matrix.
+            the desired Root-Mean-Square of the image. Defaults to 1.
+        outrange : list, optional
+            the output range of the image. Defaults to [0,255]. When `rms` is not 1, `outrange` is forced to be [0, 255].  
         """
-        # standardize the image (the range of output should be -1,1)
-        # make the standard deviation to be the desired RMS
-        mat = (mat - np.mean(mat))/np.std(mat) * rms
         
-        # there may be some stray values outside of the presentable range; convert < -1
-        # to -1 and > 1 to 1
-        mat = np.clip(mat, a_min=-1.0, a_max=1.0)
-        return mat
+        # standardize the image (the range of output should be -1,1)
+        mat_std = (self.mat - np.mean(self.mat))/np.std(self.mat)
+        # make the standard deviation to be the desired RMS
+        mat_std_rms = mat_std * rms
+        
+        mat_min = np.min(mat_std_rms)
+        mat_max = np.max(mat_std_rms)
+        
+        # force outrange to [0, 255] if rms is not 1
+        if rms != 1:
+            outrange = [0,255]
+            
+        mat_out = (mat_std_rms - mat_min) * (outrange[1] - outrange[0]) / (mat_max - mat_min) + outrange[0]
+        
+        # update the image matrix to self
+        self.remat(mat_out)
+
 
  
         

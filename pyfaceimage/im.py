@@ -96,7 +96,7 @@ class image:
         Make box scrambled stimuli.
     mkphasescr(**kwargs)
         Make phase scrambled stimuli.
-    sffilter(**kwargs)
+    filter(**kwargs)
         Apply spatial frequency filter to the image.
     _logit(ratio=None, correction=0.00001)
         Convert the ratio to log odds.
@@ -792,6 +792,7 @@ class image:
         self._newfilename(newfname='_pscr')
     
     def sffilter(self, **kwargs):
+    def psychopy_sffilter(self, **kwargs):
         """Apply spatial frequency filter to the image.
         
         Other Parameters
@@ -800,7 +801,7 @@ class image:
             the desired RMS of the image. Defaults to 0.3.
         maxvalue : int
             the maximum value of the image. Defaults to 255.
-        sffilter : str
+        filter : str
             the spatial frequency filter. Defaults to 'low'.
         cutoff : float
             the cutoff frequency. Defaults to 0.05.
@@ -810,7 +811,7 @@ class image:
         # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
         import psychopy.filters
         
-        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'sffilter':'low',
+        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'filter':'low',
                          'cutoff': 0.05, 'n': 10}
         kwargs = {**defaultKwargs, **kwargs}
         
@@ -830,14 +831,14 @@ class image:
         #     np.ptp(img_amp_disp)  # 'ptp' = range
         # ) - 1
         
-        if kwargs['sffilter']=='low':
+        if kwargs['filter']=='low':
             # for generating blury images
             fsfilt = psychopy.filters.butter2d_lp(
                 size=(self.w, self.h),
                 cutoff=kwargs['cutoff'],
                 n=kwargs['n']
             )
-        elif kwargs['sffilter']=='high':      
+        elif kwargs['filter']=='high':      
              # for gernerating sharp images
             fsfilt = psychopy.filters.butter2d_hp(
                 size=(self.w, self.h),
@@ -845,7 +846,7 @@ class image:
                 n=kwargs['n']
             )
         else:
-            raise 'Cannot identify the "sffilter" value...'
+            raise 'Cannot identify the "filter" value...'
         
         img_filt = np.fft.fftshift(img_freq) * fsfilt.transpose()
         # convert back to an image
@@ -855,7 +856,7 @@ class image:
         # convert the range to [0, 255]
         img_new = (img_new+1)/2*kwargs['maxvalue']
         self.remat(img_new)
-        self._newfilename(newfname='_'+kwargs['sffilter']+'_filtered')
+        self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
     
     def _stdim(self, mat, rms=0.3):
         """Standardize the image.

@@ -153,9 +153,8 @@ class image:
         Set the group name of the image.
     _setgpath(gpath='')
         Set the global path of the image.
-    _stdim(mat, rms=0.3)
-        Standardize the image.
     """
+    
     def __init__(self, filename, read=False):
         """Create an image instance.
 
@@ -670,7 +669,53 @@ class image:
         # rotate the image
         self._repil(self.pil.rotate(angle))
         
-    def adjust(self, lum=None, rms=None, mask=None):
+    def stdmat(self, clip=2, rms=1, lum=[0,255]):
+        """Standardize the image with the desired Root-Mean-Square contrast or `outrange`.
+        
+        For the algorithm, see Appendix B in 
+        Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
+
+        Parameters
+        ----------
+        clip : float, optional
+            the desired clip value. Defaults to 2.
+        rms : float, optional
+            the desired Root-Mean-Square of the image. Defaults to 1.
+        lum : num or list, optional
+            if `lum` is number, it will be treated as the mean luminance. If `lum` is list, it refers to the output luminance range of the image. Defaults to [0,255]. When `rms` is not 1, `outrange` is forced to be [0, 255].  
+        """
+        
+        # standardize the image (the range of output should be -1,1)
+        mat_std = (self.mat - np.mean(self.mat))/np.std(self.mat)
+
+        # clip the image
+        clip = np.abs(clip)
+        if clip > 0:
+            Nclipped = np.round(np.mean(np.abs(mat_std)>clip) * 100, 2)
+            mat_std[mat_std>clip] = clip
+            mat_std[mat_std<-clip] = -clip
+            print(f'Clipped {Nclipped}% pixels...')
+            
+            # rescale with std due to clipping
+            mat_std = mat_std / np.std(mat_std)
+
+        # make the standard deviation to be the desired RMS
+        mat_std_rms = mat_std * rms
+        
+        mat_min = np.min(mat_std_rms)
+        mat_max = np.max(mat_std_rms)
+        
+        # if lum is a single value, it will be treated as mean luminance
+        if type(lum) is not list:
+            lum = [lum - min(lum, 255-lum), lum + min(lum, 255-lum)]
+        # force lum to [0, 255] if rms is not 1
+        if rms != 1:
+            lum = [0,255]
+            
+        mat_out = (mat_std_rms - mat_min) * (lum[1] - lum[0]) / (mat_max - mat_min) + lum[0]
+        
+        # update the image matrix to self
+        self.remat(mat_out.astype(dtype=np.uint8))
         """Adjust the luminance and contrast of the image.
         
         Parameters
@@ -716,7 +761,7 @@ class image:
         else:
             rmslo = stdlo
            
-        newlo = logodds
+        newlo = mat_std
         # apply the new luminance (in logodds)
         newlo[mask] = (logodds[mask] - meanlo)/stdlo * rmslo + lumlo
         newmat = self._sigmoid(newlo)
@@ -1115,39 +1160,4 @@ class image:
         self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
     
     
-    def stdmat(self, rms=1, outrange=[0,255]):
-        """Standardize the image with the desired Root-Mean-Square contrast or `outrange`.
-        
-        For the algorithm, see Appendix B in 
-        Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
-
-        Parameters
-        ----------
-        rms : float, optional
-            the desired Root-Mean-Square of the image. Defaults to 1.
-        outrange : list, optional
-            the output range of the image. Defaults to [0,255]. When `rms` is not 1, `outrange` is forced to be [0, 255].  
-        """
-        
-        # standardize the image (the range of output should be -1,1)
-        mat_std = (self.mat - np.mean(self.mat))/np.std(self.mat)
-        # make the standard deviation to be the desired RMS
-        mat_std_rms = mat_std * rms
-        
-        mat_min = np.min(mat_std_rms)
-        mat_max = np.max(mat_std_rms)
-        
-        # force outrange to [0, 255] if rms is not 1
-        if rms != 1:
-            outrange = [0,255]
-            
-        mat_out = (mat_std_rms - mat_min) * (outrange[1] - outrange[0]) / (mat_max - mat_min) + outrange[0]
-        
-        # update the image matrix to self
-        self.remat(mat_out)
-
-
- 
-        
     
-        

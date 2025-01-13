@@ -16,6 +16,7 @@ __all__ = ['image',
            'mkcf_prf']
 
 import os, copy, random, glob, warnings
+import numpy as np
 import pandas as pd
 from itertools import permutations, combinations_with_replacement, combinations, product
 
@@ -222,6 +223,27 @@ def sample(imdict, n=1, valueonly=True):
     return out
 
 
+def standardize(imdict, clip=2):
+    """Standardize the luminance of the images in the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
+    clip : int, optional
+        the number of standard deviations to clip, by default 2
+    """
+    # standardize each image separately
+    [v.stdmat(clip=clip) for v in imdict.values()]
+
+    # grand min and max
+    grand_min = min([v.minlum for v in imdict.values()])
+    grand_max = max([v.maxlum for v in imdict.values()])
+        
+    # Compute the grand normalized images
+    [v.stdmat(clip=0, lum=[grand_min,grand_max]) for v in imdict.values()]
+    
+    
 def deepcopy(imdict):
     """Deep copy the dictionary.
 
@@ -820,26 +842,13 @@ def mkphasescr(imdict, **kwargs):
     """
     [v.mkphasescr(**kwargs) for v in imdict.values()]
     
-def sffilter(imdict, **kwargs):
+def filter(imdict, **kwargs):
     """Apply spatial frequency filter to the image.
     
     Parameters
     ----------
     imdict : dict
         A dictionary of image() instances.
-        
-    Other Parameters
-    ----------------
-    rms : float
-        the desired RMS of the image. Defaults to 0.3.
-    maxvalue : int
-        the maximum value of the image. Defaults to 255.
-    sffilter : str
-        the spatial frequency filter. Defaults to 'low'.
-    cutoff : float
-        the cutoff frequency. Defaults to 0.05.
-    n : int
-        the order of the filter. Defaults to 10.
     """
-    [v.sffilter(**kwargs) for v in imdict.values()]
+    [v.filter(**kwargs) for v in imdict.values()]
 

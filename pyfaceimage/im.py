@@ -3,11 +3,12 @@ A class to process a single image.
 """
     
 import os, warnings, copy
-from PIL import Image, ImageOps, ImageDraw, ImageFilter, ImageChops
+from PIL import Image, ImageOps, ImageDraw, ImageFilter, ImageChops, ImageEnhance, ImageStat
 import numpy as np
 import matplotlib.image as mpimg
 from itertools import product
 from pathlib import Path
+
 
 class image:
     """A class to process a single image.
@@ -119,8 +120,10 @@ class image:
         Add background to the RGBA image.
     rotate(angle=180)
         Rotate the image unclockwise.
-    adjust(lum=None, rms=None, mask=None)
-        Adjust the luminance and contrast of the image.
+    stdmat(clip=2, lum=[0,255], std_range = None)
+        Standardize the image matrix.
+    adjust_pil(lum=None, rms=None, mask=None)
+        Adjust the luminance and contrast of the image with `pillow`.
     cropoval(radius=(100,128), bgcolor=None)
         Crop the image with an oval shape.
     croprect(box=None)
@@ -135,10 +138,6 @@ class image:
         Make phase scrambled stimuli.
     filter(**kwargs)
         Apply spatial frequency filter to the image.
-    psychopy_sffilter(**kwargs)
-        Apply spatial frequency filter to the image.
-    stdmat(rms=1, outrange=[0,255])
-        Standardize the image matrix.
     _logit(ratio=None, correction=0.00001)
         Convert the ratio to log odds.
     _sigmoid(logodds, correction=0.00001)
@@ -153,6 +152,8 @@ class image:
         Set the group name of the image.
     _setgpath(gpath='')
         Set the global path of the image.
+    _filter(**kwargs)
+        Apply spatial frequency filter to the image.
     """
     
     def __init__(self, filename, read=False):
@@ -431,7 +432,8 @@ class image:
         """make a deep copy of the instance
         """
         return copy.deepcopy(self)
-            
+    
+    
     def remat(self, mat):
         """Re-assign value to .mat and update related information.
 
@@ -444,6 +446,7 @@ class image:
         self.mat = mat
         self.pil = Image.fromarray(mat)
         self._updatefrommat()
+        
         
     def _repil(self, pil):
         self.pil = pil
@@ -565,6 +568,7 @@ class image:
               f'Mean luminance: {self.meanlum}\n'+
               f'RMS: {self.rms}')
     
+    
     def torgba(self):
         """Convert the image to RGBA.
         """
@@ -592,11 +596,13 @@ class image:
         self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
         self.remat(self.mat)
          
+         
     def grayscale(self):
         """Convert the image to gray-scale.
         """
         # convert image to gray-scale
         self._repil(ImageOps.grayscale(self.pil))
+        
         
     def addbg(self, bgcolor=(255,255,255)):
         """Add background to the RGBA image.
@@ -620,6 +626,7 @@ class image:
         bg.paste(self.pil, (0,0), self.pil)
         # apply pil
         self._repil(bg)
+        
         
     def _logit(self, ratio=None, correction=0.00001):
         """Convert the ratio to log odds.
@@ -648,8 +655,23 @@ class image:
         
         return np.log(ratio/(1-ratio))
         
+        
     def _sigmoid(self, logodds, correction=0.00001):
-                       
+        """Convert the log odds to the ratio.
+
+        Parameters
+        ----------
+        logodds : np.array
+            the log odds of the image.
+        correction : float, optional
+            the correction value. Defaults to 0.00001.
+
+        Returns
+        -------
+        np.array
+            the ratio of the image.
+        """
+            
         ratio = np.exp(logodds)/(np.exp(logodds)+1)
         ratio[ratio>=(1-correction)] = 1
         ratio[ratio<=(correction)] = 0
@@ -657,6 +679,7 @@ class image:
         gray = ratio * 255
         
         return gray.astype(dtype=np.uint8)
+    
     
     def rotate(self, angle=180):
         """Rotate the image unclockwise.
@@ -669,7 +692,8 @@ class image:
         # rotate the image
         self._repil(self.pil.rotate(angle))
         
-    def stdmat(self, clip=2, rms=1, lum=[0,255]):
+        
+    def stdmat(self, clip=2, lum=[0,255], std_range = None):
         """Standardize the image with the desired Root-Mean-Square contrast or `outrange`.
         
         For the algorithm, see Appendix B in 
@@ -679,12 +703,11 @@ class image:
         ----------
         clip : float, optional
             the desired clip value. Defaults to 2.
-        rms : float, optional
-            the desired Root-Mean-Square of the image. Defaults to 1.
         lum : num or list, optional
             if `lum` is number, it will be treated as the mean luminance. If `lum` is list, it refers to the output luminance range of the image. Defaults to [0,255]. When `rms` is not 1, `outrange` is forced to be [0, 255].  
+        std_range : list, optional
+            the output range of the image. Defaults to None
         """
-        
         # standardize the image (the range of output should be -1,1)
         mat_std = (self.mat - np.mean(self.mat))/np.std(self.mat)
 
@@ -698,80 +721,48 @@ class image:
             
             # rescale with std due to clipping
             mat_std = mat_std / np.std(mat_std)
-
-        # make the standard deviation to be the desired RMS
-        mat_std_rms = mat_std * rms
         
-        mat_min = np.min(mat_std_rms)
-        mat_max = np.max(mat_std_rms)
+        # rescale the image to the desired range
+        if std_range is not None:
+            mat_min = min(std_range)
+            mat_max = max(std_range)
+        else:
+            mat_min = np.min(mat_std)
+            mat_max = np.max(mat_std)
         
         # if lum is a single value, it will be treated as mean luminance
         if type(lum) is not list:
             lum = [lum - min(lum, 255-lum), lum + min(lum, 255-lum)]
-        # force lum to [0, 255] if rms is not 1
-        if rms != 1:
-            lum = [0,255]
             
-        mat_out = (mat_std_rms - mat_min) * (lum[1] - lum[0]) / (mat_max - mat_min) + lum[0]
+        mat_out = (mat_std - mat_min) * (max(lum) - min(lum)) / (mat_max - mat_min) + min(lum)
         
         # update the image matrix to self
         self.remat(mat_out.astype(dtype=np.uint8))
-        """Adjust the luminance and contrast of the image.
         
+
+    def adjust_pil(self, lum=None, rms=None):
+        """Adjust the luminance and contrast of the image with `pillow`.
+
         Parameters
         ----------
-        lum : float, optional
-            the desired mean of the image. Defaults to None.
-        rms : float, optional
-            the desired standard deviation of the image. Defaults to None.
-        mask : np.array, optional
-            the mask for the image. Defaults to None.
+        lum : int, optional
+            the luminance, by default None
+        rms : int, optional
+            the RMS contrast, by default None
         """
-        # adjust the luminance (mean) or/and contrast (standard deviations) of the gray-scaled image. Default is do nothing.
+        # adjust lumninance 
+        enhancer = ImageEnhance.Brightness(self.pil)
+        brightness_factor = lum / ImageStat.Stat(self.pil.convert('L')).mean[0]
+        adjusted_image = enhancer.enhance(brightness_factor)
         
-        # default for mask
-        if self._nchan in (2,4):
-            alpha = self.mat[...,-1]
-            isalpha = True
-        else:
-            alpha = np.ones((self._h, self._w))*255
-            isalpha = False
-        if mask is None:
-            mask = (alpha/255).astype(dtype=bool)
+        # adjust contrast of the image
+        enhancer = ImageEnhance.Contrast(adjusted_image)
+        contrast_factor = rms / ImageStat.Stat(adjusted_image.convert('L')).stddev[0]
+        adjusted_image = enhancer.enhance(contrast_factor)
         
-        # force the image to be gray-scaled
-        self.grayscale()
-        ratio = self.mat/255
-        logodds = self._logit(ratio)
+        self._repil(adjusted_image)
         
-        # in ratio
-        rmsratio = np.std(ratio[mask]-np.mean(ratio[mask]))
-        
-        # in log odds
-        meanlo = np.mean(logodds[mask])
-        stdlo = np.std(logodds[mask]-meanlo)
-        
-        if lum is not None:
-            lumlo = self._logit(lum)
-        else:
-            lumlo = meanlo
-            
-        if rms is not None:
-            rmslo = rms * stdlo / rmsratio
-        else:
-            rmslo = stdlo
-           
-        newlo = mat_std
-        # apply the new luminance (in logodds)
-        newlo[mask] = (logodds[mask] - meanlo)/stdlo * rmslo + lumlo
-        newmat = self._sigmoid(newlo)
-        
-        if isalpha:
-            newmat = np.concatenate((newmat[...,np.newaxis], alpha[...,np.newaxis]), axis=2)
-        
-        self.remat(newmat.astype(dtype=np.uint8))
 
-        
     def cropoval(self, radius=(100,128), bgcolor=None):
         """Crop the image with an oval shape.
         
@@ -810,6 +801,7 @@ class image:
         # crop the rectangle
         self.croprect(bbox)
         
+        
     def croprect(self, box=None):
         """Crop the image with a rectangle box.
 
@@ -820,6 +812,7 @@ class image:
         """
         # crop the image with a rectangle box
         self._repil(self.pil.crop(box))
+    
     
     def resize(self, **kwargs):
         """Resize the image.
@@ -864,6 +857,7 @@ class image:
         # save re-sized images (information)
         self._repil(self.pil.resize(**kwargs))
         self._newfilename(newfolder=newfolder)
+        
         
     def pad(self, **kwargs):  
         """
@@ -936,6 +930,7 @@ class image:
         self.remat(padmat)
         if kwargs['extrafn']!='':
             self._newfilename(newfname=kwargs['extrafn'])
+        
         
     def mkboxscr(self, **kwargs):
         """Make box scrambled stimuli.
@@ -1018,17 +1013,10 @@ class image:
         self.remat(np.squeeze(np.moveaxis(bsmat,0,2)))
         self._newfilename(newfname='_bscr')
         
-    def mkphasescr(self, **kwargs):
+        
+    def mkphasescr(self):
         """Make phase scrambled stimuli.
-        
-        Other Parameters
-        ----------------
-        rms : float
-            the desired RMS of the image. Defaults to 0.3.
         """
-        defaultKwargs = {'rms':0.3}
-        kwargs = {**defaultKwargs, **kwargs}
-        
         # make a random phase
         randphase = np.angle(np.fft.fft2(np.random.rand(self._h, self._w)))
 
@@ -1058,106 +1046,99 @@ class image:
         self.remat(np.uint8(outmat))
         self._newfilename(newfname='_pscr')
         
-        
+            
     def filter(self, **kwargs):
-        
-        
-        
-        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'filter':'low',
-                         'cpi': 5,   # cycles per image (width) or cycles per degree if vapi>0
-                         'vapi': 1,  # visual angle per image
-                         'radius': 5, }
-        kwargs = {**defaultKwargs, **kwargs}
-        
-        self.grayscale()
-        # self.stdmat(kwargs['rms'])
-        
-        if kwargs['cpi'] > 0:
-            # cycles per image (width) OR cycles per degree (along the width)
-            radius = int(self._w / (2 * np.pi * kwargs['cpi'] * kwargs['vapi']))
-        else:
-            radius = kwargs['radius']
-            
-        # Apply low-pass filter
-        low_pass_image = self.pil.filter(ImageFilter.GaussianBlur(radius=radius))
-
-        # Create high-pass filter by subtracting low-pass image
-        high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
-        # Enhance the high-pass image (optional, to increase contrast)
-        high_pass_image = high_pass_image.point(lambda x: x * 2)  # Amplify high frequencies
-        
-        if kwargs['filter']=='low':
-            self._repil(low_pass_image)
-        elif kwargs['filter']=='high':
-            self._repil(high_pass_image)
-        
-        self.stdmat(kwargs['rms'])
-        self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
-            
-            
-    def psychopy_sffilter(self, **kwargs):
-        """Apply spatial frequency filter to the image.
+        """Filter the image with low-pass or high-pass filter.
         
         Other Parameters
         ----------------
-        rms : float
-            the desired RMS of the image. Defaults to 0.3.
-        maxvalue : int
-            the maximum value of the image. Defaults to 255.
         filter : str
-            the spatial frequency filter. Defaults to 'low'.
-        cutoff : float
-            the cutoff frequency. Defaults to 0.05.
-        n : int
-            the order of the filter. Defaults to 10.
+            the filter type. Defaults to 'low'. Other option is 'high'.
+        vapi : int
+            visual angle per image. Defaults to 5.
+        cutoff : int
+            cycles per image (width) or cycles per degree if vapi>0. Defaults to 8.
+        clip : int
+            the clip value. Defaults to 0, i.e., no clipping or normalization will be applied.
         """
-        # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
-        import psychopy.filters
+        # the other possible solution is:
+        # # https://www.djmannion.net/psych_programming/vision/sf_filt/sf_filt.html
         
-        defaultKwargs = {'rms':0.3, 'maxvalue':255, 'filter':'low',
-                         'cutoff': 0.05, 'n': 10}
+        defaultKwargs = {'filter':'low',
+                         'vapi': 5,  # visual angle per image
+                         'cutoff': 8,   # cycles per image (width) or cycles per degree if vapi>0
+                         'clip': 0}   
         kwargs = {**defaultKwargs, **kwargs}
         
+        # apply filter and save all LSF, HSF, and FS
+        images = self._filter(**kwargs)
+        
+        # save the filtered images according to the filter type
+        if kwargs['filter'] in ['low', 'lsf', 'l']:
+            self._repil(images['lsf'])
+        elif kwargs['filter'] in ['high', 'hsf', 'h']:
+            self._repil(images['hsf'])
+        
+        # update the filename
+        self._newfilename(newfname='_'+kwargs['filter'])
+    
+    
+    def _filter(self, **kwargs):
+        """Filter the image with low-pass or high-pass filter. This function is used in filter().
+        
+        Other Parameters
+        ----------------
+        vapi : int
+            visual angle per image. Defaults to 5.
+        cutoff : int
+            cycles per image (width) or cycles per degree if vapi>0. Defaults to 8.
+        clip : int
+            the clip value. Defaults to 0, i.e., no clipping or normalization will be applied.
+
+        Returns
+        -------
+        dict
+            a dictionary with three keys: 'lsf', 'hsf', 'fs', corresponding to the low-pass filtered image, high-pass filtered image, and the original image, respectively.
+        """
+        
+        defaultKwargs = {'vapi': 5,  # visual angle per image
+                         'cutoff': 8,   # cutoff; cycles per image (width) or cycles per degree if vapi>0
+                         'clip': 0}   
+        kwargs = {**defaultKwargs, **kwargs}
+        
+        # grayscale image
         self.grayscale()
-        self.stdmat(kwargs['rms'])
-        img_freq = np.fft.fft2(self.mat)
-
-        # calculate amplitude spectrum
-        # img_amp = np.fft.fftshift(np.abs(img_freq))
-
-        # # for display, take the logarithm
-        # img_amp_disp = np.log(img_amp + 0.0001)
-
-        # # rescale to -1:+1 for display
-        # img_amp_disp = (
-        #     ((img_amp_disp - np.min(img_amp_disp)) * 2) / 
-        #     np.ptp(img_amp_disp)  # 'ptp' = range
-        # ) - 1
         
-        if kwargs['filter']=='low':
-            # for generating blury images
-            fsfilt = psychopy.filters.butter2d_lp(
-                size=(self._w, self._h),
-                cutoff=kwargs['cutoff'],
-                n=kwargs['n']
-            )
-        elif kwargs['filter']=='high':      
-             # for gernerating sharp images
-            fsfilt = psychopy.filters.butter2d_hp(
-                size=(self._w, self._h),
-                cutoff=kwargs['cutoff'],
-                n=kwargs['n']
-            )
-        else:
-            raise 'Cannot identify the "filter" value...'
+        # cycles per image (width) OR cycles per degree (along the width)
+        # FWHM = 2 * sqrt(2 * log(2)) * sigma
+        # sigma = self._w / (2 * np.pi * kwargs['cpi'] * kwargs['vapi'])
+        sigma = self._w / (kwargs['vapi'] * np.pi * np.sqrt(2 * np.log(2)) * kwargs['cutoff'])
+        print(f'Sigma: {sigma}')
+            
+        # Apply low-pass filter
+        low_pass_image = self.pil.filter(ImageFilter.GaussianBlur(radius=sigma))
+
+        # Create high-pass filter by subtracting low-pass image
+        high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
         
-        img_filt = np.fft.fftshift(img_freq) * fsfilt.transpose()
-        # convert back to an image
-        img_new = np.real(np.fft.ifft2(np.fft.ifftshift(img_filt)))
-        self.remat(img_new)
-        # standardize the image 
-        img_new = self.stdim(kwargs['rms'])
-        self._newfilename(newfname='_'+kwargs['filter']+'_filtered')
-    
-    
-    
+        # save output
+        imdict = {'lsf': low_pass_image, 
+                  'hsf': high_pass_image,
+                  'fs': self.pil}
+        
+        if kwargs['clip'] != 0:
+            # standardize across multiple images if clip is not 0
+            # same as standardize() in __inti__.py
+            
+            # standardize each image separately
+            [v.stdmat(clip=kwargs['clip']) for v in imdict.values()]
+
+            # grand min and max
+            grand_min = min([v.minlum for v in imdict.values()])
+            grand_max = max([v.maxlum for v in imdict.values()])
+            
+            # Compute the grand normalized images
+            [v.stdmat(clip=0, std_range=[grand_min,grand_max]) for v in imdict.values()]
+        
+        return imdict
+            

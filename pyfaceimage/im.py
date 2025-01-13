@@ -57,7 +57,7 @@ class image:
     amat : np.array
         the alpha matrix.
         
-    Properties
+    Attributes
     ----------
     filename : str
         Return the image filename.

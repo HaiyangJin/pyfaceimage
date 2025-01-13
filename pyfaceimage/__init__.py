@@ -849,6 +849,17 @@ def filter(imdict, **kwargs):
     ----------
     imdict : dict
         A dictionary of image() instances.
+    
+    Other Parameters
+    ----------------
+    filter : str
+            the filter type. Defaults to 'low'. Other option is 'high'.
+    vapi : int
+        visual angle per image. Defaults to 5.
+    cutoff : int
+        cycles per image (width) or cycles per degree if vapi>0. Defaults to 8.
+    clip : int
+        the clip value. Defaults to 0, i.e., no clipping or normalization will be applied.
     """
     [v.filter(**kwargs) for v in imdict.values()]
 

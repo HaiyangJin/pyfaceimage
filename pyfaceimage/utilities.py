@@ -43,7 +43,7 @@ def exp_design_builder(exp_conditions, rand_block=None, sort_block=None, is_rand
     --------
     >>> exp_conditions = [("IV1", [1, 2, 3]),
                           ("IV2", [1, 2, 3, 4]),
-                          ("IV3", [1, 2, 3, 4, 5]),
+                          ("IV3", range(0,5)), # equivalent to [0, 1, 2, 3, 4]
                           ("blockNumber", [1, 2])]
     >>> rand_block = ["IV3", "IV2"]
     >>> sort_block = ["blockNumber"]

@@ -693,52 +693,72 @@ class image:
         self._repil(self.pil.rotate(angle))
         
         
-    def stdmat(self, clip=2, lum=[0,255], std_range = None):
-        """Standardize the image with the desired Root-Mean-Square contrast or `outrange`.
-        
-        For the algorithm, see Appendix B in 
-        Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
+    def stdmat(self, clip=2, std_range=None):
+        """Standardize the image with the desired Root-Mean-Square contrast or `outrange`. This function applies to self.
 
         Parameters
         ----------
         clip : float, optional
             the desired clip value. Defaults to 2.
-        lum : num or list, optional
-            if `lum` is number, it will be treated as the mean luminance. If `lum` is list, it refers to the output luminance range of the image. Defaults to [0,255]. When `rms` is not 1, `outrange` is forced to be [0, 255].  
         std_range : list, optional
-            the output range of the image. Defaults to None
+            the range used to standardize images. Defaults to None, i.e., do not apply any range to the output image matrix. Other options: "itself" (use the range of the image itself), any other range, e.g., [-0.8, 0.9] (usually it should be the grand maximum or minum values across multiple images).
         """
+        mat_out = self._stdmat(self.mat, clip=clip, std_range=std_range)
+        
+        # update the image matrix to self
+        self.remat(mat_out.astype(dtype=np.uint8))
+        
+        
+    def _stdmat(self, mat, clip=2, std_range=None):
+        """Standardize the image with the desired `std_range`. This function applies to `self`.
+        
+        For the algorithm, see Appendix B in 
+        Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
+        Perfetto, S., Wilder, J., & Walther, D. B. (2020). Effects of spatial frequency filtering choices on the perception of filtered images. Vision, 4(2), Article 2. https://doi.org/10.3390/vision4020029
+
+        Parameters
+        ----------
+        mat : np.array
+            the image matrix.
+        clip : float, optional
+            the desired clip value. Defaults to 2.
+        std_range : list, optional
+            the range used to standardize images. Defaults to None, i.e., do not apply any range to the output image matrix. Other options: "itself" (use the range of the image itself), any other range, e.g., [-0.8, 0.9] (usually it should be the grand maximum or minum values across multiple images).
+            
+        Returns
+        -------
+        np.array
+            the standardized image matrix, the range of the output is [0, 255].
+        """
+        # convert the image to double
+        mat = mat.astype('double')
+        
         # standardize the image (the range of output should be -1,1)
-        mat_std = (self.mat - np.mean(self.mat))/np.std(self.mat)
+        mat_std = (mat - np.mean(mat))/np.std(mat)
 
         # clip the image
         clip = np.abs(clip)
         if clip > 0:
             Nclipped = np.round(np.mean(np.abs(mat_std)>clip) * 100, 2)
+            print(f'Clipped {Nclipped}% pixels...')
+            
             mat_std[mat_std>clip] = clip
             mat_std[mat_std<-clip] = -clip
-            print(f'Clipped {Nclipped}% pixels...')
             
             # rescale with std due to clipping
             mat_std = mat_std / np.std(mat_std)
         
         # rescale the image to the desired range
-        if std_range is not None:
-            mat_min = min(std_range)
-            mat_max = max(std_range)
+        if std_range is None:
+            return mat_std
         else:
-            mat_min = np.min(mat_std)
-            mat_max = np.max(mat_std)
-        
-        # if lum is a single value, it will be treated as mean luminance
-        if type(lum) is not list:
-            lum = [lum - min(lum, 255-lum), lum + min(lum, 255-lum)]
-            
-        mat_out = (mat_std - mat_min) * (max(lum) - min(lum)) / (mat_max - mat_min) + min(lum)
-        
-        # update the image matrix to self
-        self.remat(mat_out.astype(dtype=np.uint8))
-        
+            if std_range == "itself":
+                mat_min = np.min(mat_std)
+                mat_max = np.max(mat_std)
+            elif std_range is not None:
+                mat_min = min(std_range)
+                mat_max = max(std_range)            
+            return (mat_std - mat_min) / (mat_max - mat_min) * 255        
 
     def adjust_pil(self, lum=None, rms=None):
         """Adjust the luminance and contrast of the image with `pillow`.
@@ -1075,9 +1095,12 @@ class image:
         
         # save the filtered images according to the filter type
         if kwargs['filter'] in ['low', 'lsf', 'l']:
-            self._repil(images['lsf'])
+            self.remat(images['lsf'])
         elif kwargs['filter'] in ['high', 'hsf', 'h']:
-            self._repil(images['hsf'])
+            self.remat(images['hsf'])
+        elif kwargs['filter'] in ['all', 'fs']:
+            # for debugging purpose
+            self.remat(images['fs'])
         
         # update the filename
         self._newfilename(newfname='_'+kwargs['filter'])
@@ -1103,7 +1126,8 @@ class image:
         
         defaultKwargs = {'vapi': 5,  # visual angle per image
                          'cutoff': 8,   # cutoff; cycles per image (width) or cycles per degree if vapi>0
-                         'clip': 0}   
+                         'clip': 0,
+                         'hsf': 'minus'}   
         kwargs = {**defaultKwargs, **kwargs}
         
         # grayscale image
@@ -1114,31 +1138,39 @@ class image:
         # sigma = self._w / (2 * np.pi * kwargs['cpi'] * kwargs['vapi'])
         sigma = self._w / (kwargs['vapi'] * np.pi * np.sqrt(2 * np.log(2)) * kwargs['cutoff'])
         print(f'Sigma: {sigma}')
-            
+        
         # Apply low-pass filter
         low_pass_image = self.pil.filter(ImageFilter.GaussianBlur(radius=sigma))
+        low_pass_mat = np.asarray(low_pass_image).astype('double')
 
         # Create high-pass filter by subtracting low-pass image
-        high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
+        if kwargs['hsf'] == 'minus':
+            # keep the negative values
+            high_pass_mat = self.mat.astype('double') - low_pass_mat.astype('double')
+        else:
+            # this does not work as expected, as it forces negative values to 0
+            high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
+            high_pass_mat = np.asarray(high_pass_image)
         
         # save output
-        imdict = {'lsf': low_pass_image, 
-                  'hsf': high_pass_image,
-                  'fs': self.pil}
+        mat_dict = {'lsf': low_pass_mat, 
+                    'hsf': high_pass_mat,
+                    'fs': self.mat.astype('double')}
         
+        print(f'Clip the image...: {kwargs['clip']}')
         if kwargs['clip'] != 0:
             # standardize across multiple images if clip is not 0
-            # same as standardize() in __inti__.py
+            # similar to standardize() in __inti__.py
             
             # standardize each image separately
-            [v.stdmat(clip=kwargs['clip']) for v in imdict.values()]
-
+            mat_dict = {k: self._stdmat(mat=v, clip=kwargs['clip']) for k, v in mat_dict.items()}
+            
             # grand min and max
-            grand_min = min([v.minlum for v in imdict.values()])
-            grand_max = max([v.maxlum for v in imdict.values()])
+            grand_min = min([np.min(v) for v in mat_dict.values()])
+            grand_max = max([np.max(v) for v in mat_dict.values()])
             
             # Compute the grand normalized images
-            [v.stdmat(clip=0, std_range=[grand_min,grand_max]) for v in imdict.values()]
+            mat_dict = {k: self._stdmat(mat=v, clip=0, std_range=[grand_min,grand_max]) for k,v in mat_dict.items()}
         
-        return imdict
-            
+        return mat_dict
+        

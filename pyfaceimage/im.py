@@ -120,7 +120,7 @@ class image:
         Add background to the RGBA image.
     rotate(angle=180)
         Rotate the image unclockwise.
-    stdmat(clip=2, lum=[0,255], std_range = None)
+    stdmat(clip=2, lum=[0,255], range = None)
         Standardize the image matrix.
     adjust_pil(lum=None, rms=None, mask=None)
         Adjust the luminance and contrast of the image with `pillow`.
@@ -693,24 +693,27 @@ class image:
         self._repil(self.pil.rotate(angle))
         
         
-    def stdmat(self, clip=2, std_range=None):
+    def stdmat(self, clip=2, matkey='mat'):
         """Standardize the image with the desired Root-Mean-Square contrast or `outrange`. This function applies to self.
 
         Parameters
         ----------
         clip : float, optional
             the desired clip value. Defaults to 2.
-        std_range : list, optional
-            the range used to standardize images. Defaults to None, i.e., do not apply any range to the output image matrix. Other options: "itself" (use the range of the image itself), any other range, e.g., [-0.8, 0.9] (usually it should be the grand maximum or minum values across multiple images).
+        matkey : str, optional
+            the key/name of the matrix to be standardized. Default to 'mat'.
         """
-        mat_out = self._stdmat(self.mat, clip=clip, std_range=std_range)
+        
+        mat = getattr(self, matkey)
+        mat_out = self._stdmat(mat, clip=clip)
+        setattr(self, matkey, mat_out)
         
         # update the image matrix to self
         self.remat(mat_out.astype(dtype=np.uint8))
         
         
-    def _stdmat(self, mat, clip=2, std_range=None):
-        """Standardize the image with the desired `std_range`. This function applies to `self`.
+    def _stdmat(self, mat, clip=2):
+        """Standardize the image.
         
         For the algorithm, see Appendix B in 
         Loschky, L. C., Sethi, A., Simons, D. J., Pydimarri, T. N., Ochs, D., & Corbeille, J. L. (2007). The importance of information localization in scene gist recognition. Journal of Experimental Psychology: Human Perception and Performance, 33(6), 1431-1450. https://doi.org/10.1037/0096-1523.33.6.1431
@@ -722,20 +725,18 @@ class image:
             the image matrix.
         clip : float, optional
             the desired clip value. Defaults to 2.
-        std_range : list, optional
-            the range used to standardize images. Defaults to None, i.e., do not apply any range to the output image matrix. Other options: "itself" (use the range of the image itself), any other range, e.g., [-0.8, 0.9] (usually it should be the grand maximum or minum values across multiple images).
             
         Returns
         -------
         np.array
-            the standardized image matrix, the range of the output is [0, 255].
+            the standardized image matrix, the range of the output is [-clip, clip].
         """
         # convert the image to double
         mat = mat.astype('double')
         
         # standardize the image (the range of output should be -1,1)
         mat_std = (mat - np.mean(mat))/np.std(mat)
-
+        
         # clip the image
         clip = np.abs(clip)
         if clip > 0:
@@ -747,18 +748,55 @@ class image:
             
             # rescale with std due to clipping
             mat_std = mat_std / np.std(mat_std)
+            
+        return mat_std
         
+        
+    def rescale(self, range=None, matkey='mat'):
+        """Rescale the image with the desired range. This function applies to self.
+
+        Parameters
+        ----------
+        range : list/tuple, optional
+            range to be used for standardization, by default None
+        matkey : str, optional
+            the key/name of the matrix to be standardized. Default to 'mat'.
+        """
+        mat = getattr(self, matkey)
+
+        mat_out = self._rescale(mat, range=range)
+        setattr(self, matkey, mat_out)
+        
+        # update the image matrix to self
+        self.remat(mat_out.astype(dtype=np.uint8))
+    
+    
+    def _rescale(self, mat, range=None):
+        """Rescale the image matrix.
+
+        Parameters
+        ----------
+        mat : np.array
+            the image matrix.
+        range : list/tuple, optional
+            range to be used for standardization, by default None
+
+        Returns
+        -------
+        np.array
+            the rescaled image matrix.
+        """
         # rescale the image to the desired range
-        if std_range is None:
-            return mat_std
+        if range is None:
+            mat_min = np.min(mat)
+            mat_max = np.max(mat)
+            
         else:
-            if std_range == "itself":
-                mat_min = np.min(mat_std)
-                mat_max = np.max(mat_std)
-            elif std_range is not None:
-                mat_min = min(std_range)
-                mat_max = max(std_range)            
-            return (mat_std - mat_min) / (mat_max - mat_min) * 255        
+            mat_min = min(range)
+            mat_max = max(range)       
+        
+        return (mat - mat_min) / (mat_max - mat_min) * 255 
+         
 
     def adjust_pil(self, lum=None, rms=None):
         """Adjust the luminance and contrast of the image with `pillow`.
@@ -1091,16 +1129,22 @@ class image:
         kwargs = {**defaultKwargs, **kwargs}
         
         # apply filter and save all LSF, HSF, and FS
-        images = self._filter(**kwargs)
+        images, sigma = self._filter(**kwargs)
         
         # save the filtered images according to the filter type
         if kwargs['filter'] in ['low', 'lsf', 'l']:
-            self.remat(images['lsf'])
+            self.remat(images['lsf'].astype(dtype=np.uint8))
+            self.mat_filter = images['lsf']
         elif kwargs['filter'] in ['high', 'hsf', 'h']:
-            self.remat(images['hsf'])
+            self.remat(images['hsf'].astype(dtype=np.uint8))
+            self.mat_filter = images['hsf']
         elif kwargs['filter'] in ['all', 'fs']:
-            # for debugging purpose
-            self.remat(images['fs'])
+            # for debugging and standardization purpose
+            self.remat(images['fs'].astype(dtype=np.uint8))
+            self.mat_filter = images['fs']
+        
+        # save the filter information
+        self.filterinfo = f'{kwargs['filter']}_{sigma}'
         
         # update the filename
         self._newfilename(newfname='_'+kwargs['filter'])
@@ -1126,8 +1170,7 @@ class image:
         
         defaultKwargs = {'vapi': 5,  # visual angle per image
                          'cutoff': 8,   # cutoff; cycles per image (width) or cycles per degree if vapi>0
-                         'clip': 0,
-                         'hsf': 'minus'}   
+                         'clip': 0}   
         kwargs = {**defaultKwargs, **kwargs}
         
         # grayscale image
@@ -1137,27 +1180,28 @@ class image:
         # FWHM = 2 * sqrt(2 * log(2)) * sigma
         # sigma = self._w / (2 * np.pi * kwargs['cpi'] * kwargs['vapi'])
         sigma = self._w / (kwargs['vapi'] * np.pi * np.sqrt(2 * np.log(2)) * kwargs['cutoff'])
-        print(f'Sigma: {sigma}')
         
         # Apply low-pass filter
         low_pass_image = self.pil.filter(ImageFilter.GaussianBlur(radius=sigma))
         low_pass_mat = np.asarray(low_pass_image).astype('double')
 
         # Create high-pass filter by subtracting low-pass image
-        if kwargs['hsf'] == 'minus':
-            # keep the negative values
-            high_pass_mat = self.mat.astype('double') - low_pass_mat.astype('double')
-        else:
-            # this does not work as expected, as it forces negative values to 0
-            high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
-            high_pass_mat = np.asarray(high_pass_image)
+        # keep the negative values
+        high_pass_mat = self.mat.astype('double') - low_pass_mat.astype('double')
+        # make sure the minimum value is 0
+        high_pass_mat = high_pass_mat - np.min(high_pass_mat)
+        if np.any(high_pass_mat > 255):
+            warnings.warn("Some values in the high-pass filtered image are above 255.")
+            high_pass_mat = high_pass_mat / 255
+        # this does not work as expected, as it forces negative values to 0
+        # high_pass_image = ImageChops.subtract(self.pil, low_pass_image)
+        # high_pass_mat = np.asarray(high_pass_image)
         
         # save output
         mat_dict = {'lsf': low_pass_mat, 
                     'hsf': high_pass_mat,
                     'fs': self.mat.astype('double')}
         
-        print(f'Clip the image...: {kwargs['clip']}')
         if kwargs['clip'] != 0:
             # standardize across multiple images if clip is not 0
             # similar to standardize() in __inti__.py
@@ -1170,7 +1214,7 @@ class image:
             grand_max = max([np.max(v) for v in mat_dict.values()])
             
             # Compute the grand normalized images
-            mat_dict = {k: self._stdmat(mat=v, clip=0, std_range=[grand_min,grand_max]) for k,v in mat_dict.items()}
+            mat_dict = {k: self._rescale(mat=v, range=[grand_min,grand_max]) for k,v in mat_dict.items()}
         
-        return mat_dict
+        return mat_dict, sigma
         

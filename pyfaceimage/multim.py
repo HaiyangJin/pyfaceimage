@@ -217,7 +217,4 @@ def concatenate(im1, im2, axis=1, sep="-", padval=0):
     im._newfilename(newfname=newfilename, addfn=False)
     
     return (im, newfilename)
-    
-    
-    
 

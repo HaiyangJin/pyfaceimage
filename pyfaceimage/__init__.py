@@ -185,6 +185,24 @@ def _isflatten(imdict):
     return isflat
 
 
+def updatekey(imdict, key='fnonly'):
+    """Update the key of the dictionary.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.
+    key : str, optional
+        which attributes to be used as the key, by default 'fnonly'
+
+    Returns
+    -------
+    dict
+        A dictionary of image() instances with updated key.
+    """
+    return {getattr(v, key):v for v in imdict.values()}
+    
+    
 def sample(imdict, n=1, valueonly=True):
     """Randomly sample n images from the dictionary.
 
@@ -223,7 +241,7 @@ def sample(imdict, n=1, valueonly=True):
     return out
 
 
-def standardize(imdict, clip=2):
+def standardize(imdict, clip=2, matkey='mat'):
     """Standardize the luminance of the images in the dictionary.
 
     Parameters
@@ -232,16 +250,19 @@ def standardize(imdict, clip=2):
         A dictionary of image() instances.
     clip : int, optional
         the number of standard deviations to clip, by default 2
+    matkey : str, optional
+        the key to be used for the matrix, by default 'mat'
     """
     # standardize each image separately
-    [v.stdmat(clip=clip) for v in imdict.values()]
+    [v.stdmat(clip=clip, matkey=matkey) for v in imdict.values()]
 
     # grand min and max
-    grand_min = min([v.minlum for v in imdict.values()])
-    grand_max = max([v.maxlum for v in imdict.values()])
+    grand_min = min([np.min(getattr(v, matkey)) for v in imdict.values()])
+    grand_max = max([np.max(getattr(v, matkey)) for v in imdict.values()])
         
     # Compute the grand normalized images
-    [v.stdmat(clip=0, lum=[grand_min,grand_max]) for v in imdict.values()]
+    
+    [v.rescale(range=[grand_min,grand_max], matkey=matkey) for v in imdict.values()]
     
     
 def deepcopy(imdict):
@@ -615,6 +636,22 @@ def read(imdict):
         A dictionary of image() instances.
     """
     [v.read() for v in imdict.values()]
+    
+def imsave(imdict, **kwargs):
+    """Save the image mat.
+
+    Parameters
+    ----------
+    newfname : str, optional
+        strings to be added before the extension, by default ''
+    newfolder : str, optional
+        folder name to replace the global directory or the last directory level, by default ''
+    addfn : bool, optional
+        whether to add the newfname to the the original fname (instead of replacing it), by default True
+    kwargs : dict, optional
+        keyword arguments for matplotlib.pyplot.imsave(), by default {}
+    """
+    [v.imsave(**kwargs) for v in imdict.values()]
 
 def save(imdict, **kwargs):
     """Save the image PIL.
@@ -843,7 +880,7 @@ def mkphasescr(imdict, **kwargs):
     [v.mkphasescr(**kwargs) for v in imdict.values()]
     
 def filter(imdict, **kwargs):
-    """Apply spatial frequency filter to the image.
+    """Apply spatial frequency filter to the image. It is suggested to use this function to generate the filtered images and then standarize them with `standardize(imdict, clip=2)`.
     
     Parameters
     ----------
@@ -859,7 +896,8 @@ def filter(imdict, **kwargs):
     cutoff : int
         cycles per image (width) or cycles per degree if vapi>0. Defaults to 8.
     clip : int
-        the clip value. Defaults to 0, i.e., no clipping or normalization will be applied.
+        the clip value. Defaults to 0, i.e., no clipping or normalization will be applied. If not 0, standardization will be applied to each image (i.e., its LSF, HSF, FS versions) separately.
     """
+    # apply the filter to each image (but without standardization)  
     [v.filter(**kwargs) for v in imdict.values()]
 

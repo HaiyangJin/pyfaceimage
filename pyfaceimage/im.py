@@ -349,7 +349,8 @@ class image:
             outmat = self.mat
         
         # use matplotlib.pyplot.imsave() to save .mat
-        mpimg.imsave(self.filename,outmat.copy(order='C'),**kwargs)
+        mpimg.imsave(self.filename,outmat,**kwargs)
+        # mpimg.imsave(self.filename,outmat.copy(order='C'),**kwargs)
         self._isfile = os.path.isfile(self.filename)
         
         
@@ -434,7 +435,7 @@ class image:
         return copy.deepcopy(self)
     
     
-    def remat(self, mat):
+    def remat(self, mat, mode=None):
         """Re-assign value to .mat and update related information.
 
         Parameters
@@ -444,7 +445,7 @@ class image:
         """
         # re-assign value to .mat and update related information
         self.mat = mat
-        self.pil = Image.fromarray(mat)
+        self.pil = Image.fromarray(mat, mode=mode)
         self._updatefrommat()
         
         
@@ -580,21 +581,22 @@ class image:
         nchan = self.mat.shape[2]
         if nchan==1: # Gray 'L'
             rgbmat = np.repeat(self.mat, 3, axis=2) # RGB
-            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
+            alphavalue = 255 if rgbmat.max()>1 else 1
+            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*alphavalue # alpha
         elif nchan==2: # Gray 'LA'
             rgbmat = np.repeat(self.mat[:,:,0:1], 3, axis=2) # RGB
             amat = self.mat[:,:,-1] # alpha
         elif nchan==3: # RGB
             rgbmat = self.mat # RGB
-            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*rgbmat.max() # alpha
+            alphavalue = 255 if rgbmat.max()>1 else 1
+            amat = np.ones_like(rgbmat[:,:,0],dtype=np.uint8)*alphavalue # alpha
         elif nchan==4: # RGBA
             rgbmat = self.mat[:,:,0:3]
             amat = self.mat[:,:,-1]
             
         self.rgbmat = rgbmat
         self.amat = amat
-        self.mat = np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2) # RGBA
-        self.remat(self.mat)
+        self.remat(np.concatenate((rgbmat, amat[..., np.newaxis]), axis=2), 'RGBA')
          
          
     def grayscale(self):

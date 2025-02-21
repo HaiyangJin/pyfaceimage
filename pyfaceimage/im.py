@@ -823,28 +823,44 @@ class image:
         self._repil(adjusted_image)
         
 
-    def cropoval(self, radius=(100,128), bgcolor=None):
+    def cropoval(self, radius=(100,128), position=None, bgcolor=None, sigma=0, crop=True):
         """Crop the image with an oval shape.
         
         Parameters
         ----------
         radius : tuple, optional
             the radius of the oval. Defaults to (100,128).
+        position : tuple, optional
+            the position of the oval. Defaults to None.
         bgcolor : tuple, optional
-            the background color. Defaults to None.
+            the background color. Defaults to None. For instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent.
+        sigma : float, optional
+            the standard deviation of the Gaussian blur. Defaults to 0, i.e., no blur.
+        crop : bool, optional
+            whether to crop the image to the oval (true) or keep its original dimension. Defaults to True.
         """
         
-        # for instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent
+        # duplicate the radius if only one value is given
+        if type(radius) is not tuple or len(radius) == 1:
+            radius = (radius, radius)
+        
+        # by default, crop the image to the center
+        if position is None:
+            position = (self._w/2, self._h/2)
         
         # to make circle
         if type(radius) is not tuple:
             radius = (radius, radius) # a and b in ellipse formula
-        bbox = (self._w/2-radius[0], self._h/2-radius[1], self._w/2+radius[0], self._h/2+radius[1])
+        bbox = (position[0]-radius[0], position[1]-radius[1], position[0]+radius[0], position[1]+radius[1])
         
         # make a ellipse/oval mask
         pil_a = Image.new("L", self.pil.size, 0)
         draw = ImageDraw.Draw(pil_a)
         draw.ellipse(bbox, fill=255)
+        
+        # apply Gaussian blur to the mask if needed
+        if sigma>0:
+            pil_a = pil_a.filter(ImageFilter.GaussianBlur(sigma))
         
         if bgcolor is not None:
             if type(bgcolor) is not tuple:
@@ -858,8 +874,14 @@ class image:
             self.pil.putalpha(pil_a)
         # update to pil        
         self._repil(self.pil)
-        # crop the rectangle
-        self.croprect(bbox)
+        
+        # make it to a rectangle
+        if crop:
+            # make it a rectangle just containing the oval
+            self.croprect(bbox)
+        else:
+            # make it a rectangle containing the whole image
+            self.croprect((0, 0, self._w, self._h))
         
         
     def croprect(self, box=None):

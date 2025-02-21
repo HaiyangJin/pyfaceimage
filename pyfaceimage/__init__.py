@@ -766,10 +766,14 @@ def cropoval(imdict, **kwargs):
 
     Other Parameters
     ----------------
-    radius : tuple
-        the radius of the oval. Defaults to (100,128).
-    bgcolor : tuple
-        the background color. Defaults to None.
+    radius : tuple, optional
+            the radius of the oval. Defaults to (100,128).
+        position : tuple, optional
+            the position of the oval. Defaults to None.
+        bgcolor : tuple, optional
+            the background color. Defaults to None. For instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent.
+        crop : bool, optional
+            whether to crop the image to the oval (true) or keep its original dimension. Defaults to True.
     """
     [v.cropoval(**kwargs) for v in imdict.values()]
     

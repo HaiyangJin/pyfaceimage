@@ -823,7 +823,7 @@ class image:
         self._repil(adjusted_image)
         
 
-    def cropoval(self, radius=(100,128), position=None, bgcolor=None, sigma=0, crop=True):
+    def cropoval(self, radius=(100,128), position=None, bgcolor=None, crop=True):
         """Crop the image with an oval shape.
         
         Parameters
@@ -835,7 +835,7 @@ class image:
         bgcolor : tuple, optional
             the background color. Defaults to None. For instance, if bgcolor is (255, 255, 255, 255), the output image is not transparent; if bgcolor is (255, 255, 255, 0), the output image is transparent.
         sigma : float, optional
-            the standard deviation of the Gaussian blur. Defaults to 0, i.e., no blur.
+            [Not in use] the standard deviation of the Gaussian blur. Defaults to 0, i.e., no blur.
         crop : bool, optional
             whether to crop the image to the oval (true) or keep its original dimension. Defaults to True.
         """
@@ -859,8 +859,8 @@ class image:
         draw.ellipse(bbox, fill=255)
         
         # apply Gaussian blur to the mask if needed
-        if sigma>0:
-            pil_a = pil_a.filter(ImageFilter.GaussianBlur(sigma))
+        # if sigma>0:
+        #     pil_a = pil_a.filter(ImageFilter.GaussianBlur(sigma))
         
         if bgcolor is not None:
             if type(bgcolor) is not tuple:

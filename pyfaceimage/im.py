@@ -1168,7 +1168,7 @@ class image:
             self.mat_filter = images['fs']
         
         # save the filter information
-        self.filterinfo = f'{kwargs['filter']}_{sigma}'
+        self.filterinfo = f'{kwargs["filter"]}_{sigma}'
         
         # update the filename
         self._newfilename(newfname='_'+kwargs['filter'])

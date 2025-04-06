@@ -184,6 +184,37 @@ def _isflatten(imdict):
     isflat = not any([isinstance(v, dict) for v in imdict.values()])
     return isflat
 
+def stimlist(imdict, sep='/'):
+    """Get the list of image names (keys) in the dictionary with a randomize assigned integer key.
+
+    Parameters
+    ----------
+    imdict : dict
+        A dictionary of image() instances.  
+    sep : str, optional
+        a string to be used to separate the key in flatten dictionary into the subdirectory and image name, by default '/'
+
+    Returns
+    -------
+    dict
+        A dictionary of image names (keys) in the dictionary with a randomize assigned integer key.
+    """
+       
+    # make sure the dictionary is not flatten
+    if _isflatten(imdict):
+        imdict = _nested(imdict)
+    
+    imgdict = {}
+    for k0,v0 in imdict.items():
+        
+        shuffled_keys = random.sample(list(range(len(v0))), len(v0))
+        thiskeydict = {shuffled_keys[i]: k for i, k in enumerate(v0.keys())}
+        imgdict.update({k0:thiskeydict})
+    
+    shuffled_groups = random.sample(list(range(len(imdict))), len(imdict))
+    groupdict = {shuffled_groups[i]: k for i, k in enumerate(imdict.keys())}
+    
+    return groupdict, imgdict
 
 def updatekey(imdict, key='fnonly'):
     """Update the key of the dictionary.

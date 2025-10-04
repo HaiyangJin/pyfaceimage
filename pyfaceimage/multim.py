@@ -27,6 +27,8 @@ def mkcf(im1, im2, **kwargs):
         whether the top half is cued. Defaults to True.
     lineh : int
         the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.
+    distv : int
+        the vertical distance (in pixels) between the top and bottom facial halves. Defaults to 0.
     width_cf : int
         the width of the composite face/the line (also the width of the output composite face image). Defaults to three times of the face width.
     lineclr : int tuple
@@ -53,7 +55,7 @@ def mkcf(im1, im2, **kwargs):
     """
     
     defaultKwargs = {'misali':0, 'topis1': True, 'cueistop': True,
-                     'lineh':3, 'width_cf': im1.w*3, 'lineclr': None,
+                     'lineh':3, 'distv': 0, 'width_cf': im1.w*3, 'lineclr': None,
                      'showcue':False, 'cueclr':None,
                      'cuethick': 4, 'cuew': int(im1.w*1.1), 'cueh': int(im1.h*.05), 'cuedist': None}
     kwargs = {**defaultKwargs, **kwargs}
@@ -80,7 +82,7 @@ def mkcf(im1, im2, **kwargs):
     alistrs = ['ali', 'mis']
     bboxes = [(0, 0, im1.w, im1.h/2), (0, im1.h/2, im1.w, im1.h)] # top, bottom
     dests = [((w_cf-im1.w)//2+misali*(1-kwargs['cueistop']), 0), # top position
-             ((w_cf-im1.w)//2+misali*kwargs['cueistop'], im1.h//2+kwargs['lineh'])] # bottom position
+             ((w_cf-im1.w)//2+misali*kwargs['cueistop'], im1.h//2+np.max([kwargs['lineh'], kwargs['distv']]))] # bottom position
     fns_12 = [im1.fnonly, im2.fnonly]
     
     fn_cf = os.path.join(fns_12[1-kwargs['topis1']]+'_'+fns_12[kwargs['topis1']]+'_'+alistrs[misali!=0])
@@ -92,10 +94,13 @@ def mkcf(im1, im2, **kwargs):
     im2_half.croprect(bboxes[kwargs['topis1']])
     
     # create a new canvas and paste the image
-    dist_cf = Image.new(im1.pil.mode, (w_cf, im1.h+kwargs['lineh']))
+    dist_cf = Image.new(im1.pil.mode, (w_cf, im1.h+np.max([kwargs['lineh'], kwargs['distv']])))
     # white line
     drawl = ImageDraw.Draw(dist_cf)
-    drawl.rectangle((0,im1.h//2,w_cf,im1.h//2+kwargs['lineh']-1),fill=kwargs['lineclr'])
+    if kwargs['lineh']>1: # draw a white line for top
+        drawl.rectangle((0, im1.h//2, w_cf, im1.h//2+kwargs['lineh']-1),fill=kwargs['lineclr'])
+        if kwargs['distv']>kwargs['lineh']: # draw another white line for bottom
+            drawl.rectangle((0, im1.h//2+kwargs['distv']-kwargs['lineh'], w_cf, im1.h//2+kwargs['distv']-1),fill=kwargs['lineclr'])
     # top and bottom
     dist_cf.paste(im1_half.pil, dests[1-kwargs['topis1']])
     dist_cf.paste(im2_half.pil, dests[kwargs['topis1']])

@@ -823,12 +823,7 @@
 
             <details class="quote">
               <summary>Source code in <code>pyfaceimage/multim.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
@@ -850,7 +845,12 @@
 <span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
-<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">composite</span><span class="p">(</span><span class="n">im_back</span><span class="p">,</span> <span class="n">im_fore</span><span class="p">):</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">composite</span><span class="p">(</span><span class="n">im_back</span><span class="p">,</span> <span class="n">im_fore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Paste im_fore to im_back. im_back should not be smaller than im_fore.</span>
 
 <span class="sd">    Parameters</span>
@@ -1016,12 +1016,7 @@
 
             <details class="quote">
               <summary>Source code in <code>pyfaceimage/multim.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
 <span class="normal">177</span>
@@ -1066,7 +1061,12 @@
 <span class="normal">216</span>
 <span class="normal">217</span>
 <span class="normal">218</span>
-<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">concatenate</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">im2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">padval</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">concatenate</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">im2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">padval</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenate two images along the specified axis.</span>
 
 <span class="sd">    Parameters</span>
@@ -1235,6 +1235,17 @@
             <td>
               <div class="doc-md-description">
                 <p>the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>distv</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the vertical distance (in pixels) between the top and bottom facial halves. Defaults to 0.</p>
               </div>
             </td>
           </tr>
@@ -1490,7 +1501,12 @@
 <span class="normal">133</span>
 <span class="normal">134</span>
 <span class="normal">135</span>
-<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mkcf</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">im2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">mkcf</span><span class="p">(</span><span class="n">im1</span><span class="p">,</span> <span class="n">im2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Make composite faces (for the composite face task) with im1 and im2.</span>
 
 <span class="sd">    Parameters</span>
@@ -1510,6 +1526,8 @@
 <span class="sd">        whether the top half is cued. Defaults to True.</span>
 <span class="sd">    lineh : int</span>
 <span class="sd">        the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.</span>
+<span class="sd">    distv : int</span>
+<span class="sd">        the vertical distance (in pixels) between the top and bottom facial halves. Defaults to 0.</span>
 <span class="sd">    width_cf : int</span>
 <span class="sd">        the width of the composite face/the line (also the width of the output composite face image). Defaults to three times of the face width.</span>
 <span class="sd">    lineclr : int tuple</span>
@@ -1536,7 +1554,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">defaultKwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;misali&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;topis1&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;cueistop&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-                     <span class="s1">&#39;lineh&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;width_cf&#39;</span><span class="p">:</span> <span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;lineclr&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="s1">&#39;lineh&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;distv&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;width_cf&#39;</span><span class="p">:</span> <span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;lineclr&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                      <span class="s1">&#39;showcue&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;cueclr&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
                      <span class="s1">&#39;cuethick&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;cuew&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="o">*</span><span class="mf">1.1</span><span class="p">),</span> <span class="s1">&#39;cueh&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">*</span><span class="mf">.05</span><span class="p">),</span> <span class="s1">&#39;cuedist&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
     <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">defaultKwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
@@ -1563,7 +1581,7 @@
     <span class="n">alistrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ali&#39;</span><span class="p">,</span> <span class="s1">&#39;mis&#39;</span><span class="p">]</span>
     <span class="n">bboxes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="p">)]</span> <span class="c1"># top, bottom</span>
     <span class="n">dests</span> <span class="o">=</span> <span class="p">[((</span><span class="n">w_cf</span><span class="o">-</span><span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">misali</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;cueistop&#39;</span><span class="p">]),</span> <span class="mi">0</span><span class="p">),</span> <span class="c1"># top position</span>
-             <span class="p">((</span><span class="n">w_cf</span><span class="o">-</span><span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">misali</span><span class="o">*</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;cueistop&#39;</span><span class="p">],</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">])]</span> <span class="c1"># bottom position</span>
+             <span class="p">((</span><span class="n">w_cf</span><span class="o">-</span><span class="n">im1</span><span class="o">.</span><span class="n">w</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">misali</span><span class="o">*</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;cueistop&#39;</span><span class="p">],</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;distv&#39;</span><span class="p">]]))]</span> <span class="c1"># bottom position</span>
     <span class="n">fns_12</span> <span class="o">=</span> <span class="p">[</span><span class="n">im1</span><span class="o">.</span><span class="n">fnonly</span><span class="p">,</span> <span class="n">im2</span><span class="o">.</span><span class="n">fnonly</span><span class="p">]</span>
 
     <span class="n">fn_cf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fns_12</span><span class="p">[</span><span class="mi">1</span><span class="o">-</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;topis1&#39;</span><span class="p">]]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">fns_12</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;topis1&#39;</span><span class="p">]]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">alistrs</span><span class="p">[</span><span class="n">misali</span><span class="o">!=</span><span class="mi">0</span><span class="p">])</span>
@@ -1575,10 +1593,13 @@
     <span class="n">im2_half</span><span class="o">.</span><span class="n">croprect</span><span class="p">(</span><span class="n">bboxes</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;topis1&#39;</span><span class="p">]])</span>
 
     <span class="c1"># create a new canvas and paste the image</span>
-    <span class="n">dist_cf</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">pil</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="p">(</span><span class="n">w_cf</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">]))</span>
+    <span class="n">dist_cf</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">pil</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="p">(</span><span class="n">w_cf</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;distv&#39;</span><span class="p">]])))</span>
     <span class="c1"># white line</span>
     <span class="n">drawl</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">dist_cf</span><span class="p">)</span>
-    <span class="n">drawl</span><span class="o">.</span><span class="n">rectangle</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span><span class="n">w_cf</span><span class="p">,</span><span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">fill</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineclr&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># draw a white line for top</span>
+        <span class="n">drawl</span><span class="o">.</span><span class="n">rectangle</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="n">w_cf</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">fill</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineclr&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;distv&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">]:</span> <span class="c1"># draw another white line for bottom</span>
+            <span class="n">drawl</span><span class="o">.</span><span class="n">rectangle</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;distv&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineh&#39;</span><span class="p">],</span> <span class="n">w_cf</span><span class="p">,</span> <span class="n">im1</span><span class="o">.</span><span class="n">h</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;distv&#39;</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">fill</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lineclr&#39;</span><span class="p">])</span>
     <span class="c1"># top and bottom</span>
     <span class="n">dist_cf</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="n">im1_half</span><span class="o">.</span><span class="n">pil</span><span class="p">,</span> <span class="n">dests</span><span class="p">[</span><span class="mi">1</span><span class="o">-</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;topis1&#39;</span><span class="p">]])</span>
     <span class="n">dist_cf</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="n">im2_half</span><span class="o">.</span><span class="n">pil</span><span class="p">,</span> <span class="n">dests</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;topis1&#39;</span><span class="p">]])</span>

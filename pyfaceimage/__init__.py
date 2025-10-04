@@ -356,6 +356,8 @@ def mkcfs(imdict, sep='/', **kwargs):
         whether the top half is cued. Defaults to True.
     lineh : int
         the height (in pixels) of the line between the top and bottom facial havles. Defaults to 3.
+    distv : int
+        the vertical distance (in pixels) between the top and bottom facial halves. Defaults to 0.
     width_cf : int
         the width of the composite face/the line (also the width of the output composite face image). Defaults to three times of the face width.
     lineclr : int tuple

@@ -476,6 +476,8 @@ def mk_cf_designs(imdict, **kwargs):
         whether the top and bottom halves are aligned. Defaults to `[0, 1]`.
     isCuedSame : list
         whether the cued half is the same as the target half. Defaults to `[0, 1]`.
+    studyIsCued : int
+        whether the study faces are cued. Defaults to `0`.
     studyIsAligned : int
         whether the study faces are always aligned. Defaults to `1`.
     faceselector : list

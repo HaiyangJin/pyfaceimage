@@ -22,6 +22,8 @@ def mk_cf_design(cfs, **kwargs):
         whether the top and bottom halves are aligned. Defaults to `[0, 1]`.
     isCuedSame : list
         whether the cued half is the same as the target half. Defaults to `[0, 1]`.
+    studyIsCued : int
+        whether the study faces are cued. Defaults to `0`.
     studyIsAligned : int
         whether the study faces are always aligned. Defaults to `1`.
     faceselector : list
@@ -71,8 +73,11 @@ def mk_cf_design(cfs, **kwargs):
         [0, 1, 3, 1],  # BIS
         [0, 1, 0, 2]   # BID
     ]
-    defaultKwargs = {'isTopCued': [1], 'isCongruent': [0, 1], 
-                     'isAligned': [0, 1], 'isCuedSame': [0, 1], 
+    defaultKwargs = {'isTopCued': [1], 
+                     'isCongruent': [0, 1], 
+                     'isAligned': [0, 1], 
+                     'isCuedSame': [0, 1], 
+                     'studyIsCued': 0,
                      'studyIsAligned': 1,
                      'faceselector': default_selector,
                      'cue_str': ['bot', 'top'],
@@ -116,7 +121,7 @@ def mk_cf_design(cfs, **kwargs):
                       ("isCuedSame", kwargs['isCuedSame']),
                       ("isAligned", kwargs['isAligned']),
                       ("basefaceIndex", list(range(ncfs)))]
-    design = pyfaceimage.utilities.exp_design_builder(exp_conditions, is_rand=kwargs['is_rand'])
+    design = exp_design_builder(exp_conditions, is_rand=kwargs['is_rand'])
     print(f'Total trials: {len(design)}')
     
     # generate the composite face indices
@@ -126,7 +131,13 @@ def mk_cf_design(cfs, **kwargs):
     
     # make the composite face names
     design['studyFace'] = design.apply(lambda row: cfs[row['thisFaceSet'][0]]+kwargs['cf_sep']+cfs[row['thisFaceSet'][1]]+'_'+kwargs['ali_str'][max(row['isAligned'], kwargs['studyIsAligned'])], axis=1)
+    
     design['testFace'] = design.apply(lambda row: cfs[row['thisFaceSet'][2]]+kwargs['cf_sep']+cfs[row['thisFaceSet'][3]]+'_'+kwargs['ali_str'][row['isAligned']], axis=1)
+    
+    if len(kwargs['isTopCued']) > 1: # add cue information to the face names
+        if kwargs['studyIsCued']:
+            design['studyFace'] += '_'+design.apply(lambda row: kwargs['cue_str'][row['isTopCued']], axis=1)
+        design['testFace'] += '_'+design.apply(lambda row: kwargs['cue_str'][row['isTopCued']], axis=1)
     
     # add task column and move it to the front
     design['Task'] = kwargs['task']

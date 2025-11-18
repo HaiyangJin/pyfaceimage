@@ -35,6 +35,8 @@ def mkcf(im1, im2, **kwargs):
         the color of the line. Defaults to (255,255,255), i.e., white.
     showcue : bool
         whether to display cue in the image. Defaults to False.
+    showcuefn : bool
+        whether to add the cue information to the filename. Defaults to False.
     cueclr : int tuple
         the color of the cue. Defaults to the same as lineclr.
     cuethick : int
@@ -56,7 +58,7 @@ def mkcf(im1, im2, **kwargs):
     
     defaultKwargs = {'misali':0, 'topis1': True, 'cueistop': True,
                      'lineh':3, 'distv': 0, 'width_cf': im1.w*3, 'lineclr': None,
-                     'showcue':False, 'cueclr':None,
+                     'showcue':False, 'showcuefn':False, 'cueclr':None,
                      'cuethick': 4, 'cuew': int(im1.w*1.1), 'cueh': int(im1.h*.05), 'cuedist': None}
     kwargs = {**defaultKwargs, **kwargs}
     
@@ -127,11 +129,12 @@ def mkcf(im1, im2, **kwargs):
         dist.paste(dist_cf, (0, cue1.size[1]))
         dist.paste(ImageOps.flip(cues[kwargs['cueistop']]), (0, cue1.size[1]+dist_cf.size[1]))
         
-        # add the cue str to filename
-        fn_cf = fn_cf+'_'+['top', 'bot'][1-kwargs['cueistop']]
-    
+        kwargs['showcuefn'] = True
     else:
         dist = dist_cf
+        
+    if kwargs['showcuefn']:
+        fn_cf += ('_top' if kwargs['cueistop'] else '_bot')
     
     # update/save the cf image information
     im_cf = im1.deepcopy()

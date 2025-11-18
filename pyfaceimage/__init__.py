@@ -364,6 +364,8 @@ def mkcfs(imdict, sep='/', **kwargs):
         the color of the line. Defaults to (255,255,255), i.e., white.
     showcue : bool
         whether to display cue in the image. Defaults to False.
+    showcuefn : bool
+        whether to add the cue information to the filename. Defaults to False.
     cueclr : int tuple
         the color of the cue. Defaults to the same as lineclr.
     cuethick : int
@@ -411,6 +413,8 @@ def _mkcfs(imdict, **kwargs):
         misalignment. Positive int will shift to the right and negative int will shift to the left. If misali is int, it refers to pixels. If misali is decimal, it misali*face width is the amount of misalignment. Defaults to [0,0.5].
     showcue : bool
         whether to display cue in the image. Defaults to False.
+    showcuefn : bool
+        whether to add the cue information to the filename. Defaults to False.
     cueistop : bool
         whether the top half is cued. Defaults to True.
     pairstyle : str
@@ -421,7 +425,7 @@ def _mkcfs(imdict, **kwargs):
     A dictionary of im.image() instance
         the composite face stimuli as a im.image() instance.
     """
-    defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'cueistop': True, 'pairstyle':'perm'}
+    defaultKwargs = {'misali':[0,0.5], 'showcue':False, 'showcuefn': False, 'cueistop': True, 'pairstyle':'perm'}
     kwargs = {**defaultKwargs, **kwargs}
     
     # make sure the dictionary is flatten
@@ -447,12 +451,13 @@ def _mkcfs(imdict, **kwargs):
     
     # generate all possible combinations of composite face images
     cfdict = {}
+    thekwargs = kwargs.copy()
     for (k1, k2) in _mkpair(imdict, pairstyle=kwargs['pairstyle']):
          
         for (mis, cue) in product(misali, cueistop): # both aligned and misaligned
-            kwargs['misali']=mis
-            kwargs['cueistop']=cue
-            tmpcf, cf_fn = mkcf(imdict[k1], imdict[k2], **kwargs)
+            thekwargs['misali']=mis
+            thekwargs['cueistop']=cue
+            tmpcf, cf_fn = mkcf(imdict[k1], imdict[k2], **thekwargs)
             cfdict[cf_fn]=tmpcf
     
     return cfdict

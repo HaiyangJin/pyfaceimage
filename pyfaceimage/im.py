@@ -846,13 +846,18 @@ class image:
         
         # by default, crop the image to the center
         if position is None:
-            position = (self._w/2, self._h/2)
+            position = (self._w//2, self._h//2)
         
         # to make circle
         if type(radius) is not tuple:
             radius = (radius, radius) # a and b in ellipse formula
-        bbox = (position[0]-radius[0], position[1]-radius[1], position[0]+radius[0], position[1]+radius[1])
-        
+        # Calculate bounding box
+        left = position[0] - radius[0]
+        top = position[1] - radius[1]
+        right = position[0] + radius[0]
+        bottom = position[1] + radius[1]
+        bbox = (left, top, right, bottom)
+
         # make a ellipse/oval mask
         pil_a = Image.new("L", self.pil.size, 0)
         draw = ImageDraw.Draw(pil_a)
@@ -877,8 +882,9 @@ class image:
         
         # make it to a rectangle
         if crop:
+            crop_bbox = (int(left), int(top), int(right)+1, int(bottom)+1)
             # make it a rectangle just containing the oval
-            self.croprect(bbox)
+            self.croprect(crop_bbox)
         else:
             # make it a rectangle containing the whole image
             self.croprect((0, 0, self._w, self._h))
